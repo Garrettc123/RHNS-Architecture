@@ -1,0 +1,76 @@
+ARXIV ENDORSEMENT REQUEST EMAILS
+For: cs.AI submission of RHNS architecture paper
+From: Garrett Carrol, Garcar Enterprise
+Date: April 27, 2026
+
+================================================================================
+TARGET 1: Shunyu Yao — Princeton (LATS, Tree-of-Thought)
+================================================================================
+
+Subject: arXiv Endorsement Request — RHNS Neuro-Symbolic Architecture (cs.AI)
+
+Hello Shunyu,
+
+I am Garrett Carrol, founder of Garcar Enterprise. I have been building RHNS,
+a recursive neuro-symbolic architecture for governed multi-agent reasoning,
+and your work on LATS and Tree-of-Thought planning has directly shaped how I
+approach recursive goal decomposition and tree-based search in RHNS.
+
+I am preparing a preprint for arXiv submission under cs.AI and am seeking
+an endorsement from a researcher active in the field. I can send the full
+draft immediately. If you are open to it, I would be grateful for your
+endorsement or brief guidance on the best submission category.
+
+Thank you for your work and your time.
+
+Garrett Carrol
+Founder, Garcar Enterprise
+https://github.com/Garrettc123/RHNS-Architecture
+
+================================================================================
+TARGET 2: Charles Packer — UC Berkeley (MemGPT, persistent agent memory)
+================================================================================
+
+Subject: arXiv Endorsement Request — RHNS Neuro-Symbolic Architecture (cs.AI)
+
+Hello Charles,
+
+I am Garrett Carrol, founder of Garcar Enterprise. I have been building RHNS,
+a recursive neuro-symbolic cognitive architecture, and your work on MemGPT
+and persistent agent memory has directly informed how I designed the federated
+knowledge graph layer at the core of RHNS.
+
+I am preparing a preprint for arXiv (cs.AI) and am seeking an endorsement
+from a researcher active in agent memory and architecture. I can send the
+full draft immediately. If you are open to it, I would be grateful for your
+endorsement or guidance on submission.
+
+Thank you.
+
+Garrett Carrol
+Founder, Garcar Enterprise
+https://github.com/Garrettc123/RHNS-Architecture
+
+================================================================================
+TARGET 3: Darren Edge — Microsoft Research (GraphRAG, knowledge graph reasoning)
+================================================================================
+
+Subject: arXiv Endorsement Request — RHNS Neuro-Symbolic Architecture (cs.AI)
+
+Hello Darren,
+
+I am Garrett Carrol, founder of Garcar Enterprise. I have been building RHNS,
+a recursive neuro-symbolic architecture, and your work on GraphRAG and
+community-level graph reasoning has directly shaped how I designed the
+federated knowledge graph enrichment layer in RHNS.
+
+I am preparing a preprint for arXiv (cs.AI) and am seeking an endorsement
+from a researcher active in graph reasoning and knowledge systems. I can
+send the full draft immediately. If you are open to it, I would be grateful
+for your endorsement or guidance on submission.
+
+Thank you.
+
+Garrett Carrol
+Founder, Garcar Enterprise
+https://github.com/Garrettc123/RHNS-Architecture

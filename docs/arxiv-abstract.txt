@@ -1,0 +1,28 @@
+ARXIV SUBMISSION — cs.AI
+
+Title: The Recursive Hierarchical Network System (RHNS): A Neuro-Symbolic Architecture for Recursive, Governed, Multi-Agent Reasoning
+
+Authors: Garrett Carrol (Garcar Enterprise)
+
+Abstract:
+This paper introduces the Recursive Hierarchical Network System (RHNS), a
+neuro-symbolic cognitive architecture for recursive problem decomposition,
+governed multi-agent reasoning, dynamic skill synthesis, and federated memory
+integration. RHNS combines hierarchical goal trees, graph-grounded memory,
+symbolic runtime constraints, metacognitive oversight, and recursive
+self-improvement loops into a unified substrate for agentic operating systems.
+The architecture is designed to support multi-domain autonomous execution while
+preserving auditability, policy enforcement, and knowledge reuse across
+deployments. We describe RHNS as the cognitive genome underlying Garcar
+Enterprise's agentic operating environment and present its core components:
+recursive planning, skill synthesis, symbolic grounding, federated knowledge
+graph expansion, and governance-aware execution.
+
+Categories: cs.AI (primary), cs.MA (multi-agent systems), cs.NE (neural and evolutionary computing)
+
+Keywords: neuro-symbolic AI, recursive planning, multi-agent systems, cognitive architecture, agentic OS, symbolic grounding, knowledge graph, governed AI
+
+Submission notes:
+- This paper establishes prior art for the RHNS architecture as of April 27, 2026
+- An arXiv endorsement in cs.AI is required for first-time submitters
+- Endorsement targets: researchers active in neuro-symbolic AI, recursive planning, or agentic systems

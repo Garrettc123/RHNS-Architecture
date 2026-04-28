@@ -1,0 +1,25 @@
+ZENODO DEPOSIT DESCRIPTION
+
+This deposit documents the original RHNS (Recursive Hierarchical Network
+System) architecture conceived and authored by Garrett Carrol of Garcar
+Enterprise. RHNS is a recursive neuro-symbolic architecture for governed
+multi-agent reasoning, hierarchical planning, memory integration, symbolic
+grounding, and reusable skill synthesis.
+
+This publication is intended both as a citable technical contribution and as
+a public prior-art disclosure establishing authorship and timestamped
+architectural precedence.
+
+Deposit metadata:
+  Title: The Recursive Hierarchical Network System (RHNS): A Neuro-Symbolic Architecture for Recursive, Governed, Multi-Agent Reasoning
+  Upload type: Publication (Technical Note)
+  Authors: Garrett Carrol (Garcar Enterprise, Grandview Texas)
+  License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+  Keywords: neuro-symbolic AI, RHNS, multi-agent systems, cognitive architecture, agentic OS, recursive planning, knowledge graph, governed AI
+  Date: April 27, 2026
+  Access: Open
+
+Related resources:
+  - GitHub: https://github.com/Garrettc123/RHNS-Architecture
+  - Defensive publication: submitted to IP Commons (tdcommons.org), April 27 2026
+  - arXiv preprint: pending submission, cs.AI
