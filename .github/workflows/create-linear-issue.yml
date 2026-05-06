@@ -1,0 +1,55 @@
+name: Create RHNS Linear Issue
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/create-linear-issue.yml'
+
+jobs:
+  create-linear-issue:
+    name: Log RHNS Blueprint to Linear
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Linear Issue via API
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          BODY=$(cat <<'GRAPHQL'
+          {
+            "query": "mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier title url } } }",
+            "variables": {
+              "input": {
+                "teamId": "0a42fa2d-5df2-45f5-a1c2-1dd78749fe93",
+                "title": "RHNS Architecture: Recursive Hierarchical Neuro-Symbolic Reasoning System — Unified Blueprint",
+                "priority": 1,
+                "assigneeId": "cb3f44ee-54c2-4f5d-a4a4-d03c0a599188",
+                "description": "## Overview\nThis issue tracks the architectural design, specification, and implementation of the **Recursive, Hierarchical, Neuro-Symbolic (RHNS) Architecture** — a unified cognitive blueprint for perfected artificial intelligence reasoning.\n\nStatus: **Upgraded, integrated, and working on architecture** (as of May 6, 2026).\n\n---\n\n## 1. Theoretical Foundation\n\n### The Two-Culture Schism\nAI has historically oscillated between:\n- **Symbolic (GOFAI)**: SOAR, ACT-R — explicit logic, interpretable rules, formal knowledge representation\n- **Connectionist (Deep Learning)**: LLMs — statistical fluency, generative power, no grounded truth\n\nThe RHNS architecture **rejects this dichotomy** and synthesizes both traditions.\n\n### The Common Model of Cognition (CMC)\nThe CMC serves as theoretical bedrock. Intelligence is NOT a unitary function — it is an emergent property of interacting specialized components:\n- **Perceptual Module**: Sensory/input processing, multi-modal grounding\n- **Working Memory**: Active context buffer (MemGPT-style tiered memory management)\n- **Procedural Execution**: Action selection, skill invocation, tool-calling\n- **Declarative Memory**: Long-term knowledge store (episodic + semantic)\n- **Metacognitive Reflector**: Self-monitoring, error detection, strategy revision\n\n---\n\n## 2. System 1 → System 2 Engineering\n\nPrimary failure mode of LLMs: **System 1 thinking** — fast, heuristic, statistically probable, not logically derived.\n\nThe RHNS architecture **artificially induces System 2 processes**:\n- Slow, deliberative, sequential computation\n- Explicit reasoning traces (Chain-of-Thought, Tree-of-Thought)\n- Multi-step deduction with backtracking and verification\n- Critical domains: legal analysis, software engineering, scientific discovery\n\n---\n\n## 3. Core Architectural Pillars\n\n### 3.1 Recursive Search — LATS Integration\n**Language Agent Tree Search (LATS)**:\n- Monte Carlo Tree Search (MCTS) over reasoning trajectories\n- Each node = reasoning state; each edge = action/thought\n- Backpropagation of value estimates from terminal states\n- Enables **self-correction** through recursive rollout and pruning\n- Self-reflection critiques fed back as context for next expansion\n\n### 3.2 Hierarchical Memory — MemGPT OS Model\n**MemGPT-style operating-system memory**:\n- **In-context (RAM)**: Active working memory window\n- **External storage (disk)**: Vector stores, knowledge bases, conversation archives\n- **Memory management functions**: archival_memory_insert, archival_memory_search, conversation_search\n- Enables infinite effective context through intelligent paging\n\n### 3.3 Structured Retrieval — GraphRAG\n**GraphRAG over flat vector RAG**:\n- Knowledge stored as entity-relationship graphs (not flat chunks)\n- Graph traversal enables **multi-hop reasoning** (A → B → C inference chains)\n- Community detection (Leiden/Louvain) surfaces thematic clusters\n- Reduces hallucination by grounding responses in structured relational knowledge\n\n### 3.4 Neuro-Symbolic Bridge Layer\n- Neural backbone (LLM): Pattern recognition, language generation, intuition\n- Symbolic reasoner: Formal logic, constraint satisfaction, theorem proving\n- **Verify-then-generate loop**: LLM generates → symbolic verifier checks → counterexample returned → LLM revises\n- Tools: SWI-Prolog, Z3 SMT solver, LOGIC-LM transpilation\n\n### 3.5 Metacognitive Reflector\n- Monitors overall reasoning trajectory\n- Detects failure patterns: circular reasoning, unsupported assumptions, scope creep\n- Meta-actions: SWITCH_STRATEGY, EXPAND_SEARCH_DEPTH, INVOKE_SYMBOLIC_VERIFIER, RETRIEVE_FROM_GRAPH, ESCALATE_TO_HUMAN\n- Makes RHNS a *trustworthy* autonomous agent — knows the limits of its own competence\n\n---\n\n## 4. Garcar Enterprise Implementation Stack\n\n| RHNS Component | Implementation Technology |\n|---|---|\n| Neural Backbone | Claude 3.7 / GPT-4o via API |\n| Working Memory | MemGPT / Letta framework |\n| Recursive Search | LATS or custom MCTS over LangGraph |\n| Structured Knowledge | Microsoft GraphRAG + Neo4j |\n| Symbolic Reasoner | SWI-Prolog or Z3 SMT solver |\n| Procedural Execution | LangGraph tool-calling graph |\n| Metacognitive Reflector | Custom controller agent in LangGraph |\n| Deployment | FastAPI backend on Railway + AWS |\n| Orchestration | GitHub Actions CI/CD + Titan framework |\n\n---\n\n## 5. Key Design Principles\n\n1. **Recursive self-improvement**: Every reasoning cycle produces a critique that seeds the next\n2. **Hierarchical abstraction**: Problems decomposed top-down, solutions built bottom-up\n3. **Grounded truth**: Symbolic layer enforces logical consistency, blocks hallucination\n4. **OS-like resource management**: Memory, attention, and compute allocated dynamically\n5. **Interpretability by design**: Reasoning traces are explicit, auditable, correctable\n\n---\n\n## 6. Implementation Milestones\n\n- [ ] CMC component specification complete\n- [ ] MemGPT memory management layer integrated\n- [ ] LATS recursive search engine integrated\n- [ ] GraphRAG knowledge store deployed\n- [ ] Neuro-symbolic bridge prototype operational\n- [ ] System 2 reasoning benchmark evaluation\n- [ ] Full RHNS integration and end-to-end test\n- [ ] Production deployment on Garcar Enterprise infrastructure\n\n---\n\n## 7. References\n- Yao et al., *Language Agent Tree Search* (LATS)\n- Packer et al., *MemGPT: Towards LLMs as Operating Systems*\n- Edge et al., *From Local to Global: GraphRAG*\n- Anderson et al., *Common Model of Cognition*\n- Kahneman, *Thinking Fast and Slow* (System 1/2 framework)\n- Minsky, *Society of Mind*\n- Newell, *Unified Theories of Cognition* (SOAR)"
+              }
+            }
+          }
+          GRAPHQL
+          )
+
+          RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
+            -H "Content-Type: application/json" \
+            -H "Authorization: $LINEAR_API_KEY" \
+            -d "$BODY")
+
+          echo "Linear API Response:"
+          echo "$RESPONSE" | python3 -m json.tool
+
+          # Check for success
+          SUCCESS=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('issueCreate',{}).get('success','false'))")
+          ISSUE_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('issueCreate',{}).get('issue',{}).get('url','N/A'))" 2>/dev/null || echo 'N/A')
+          ISSUE_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('issueCreate',{}).get('issue',{}).get('identifier','N/A'))" 2>/dev/null || echo 'N/A')
+
+          echo "\n✅ Success: $SUCCESS"
+          echo "📋 Issue ID: $ISSUE_ID"
+          echo "🔗 Issue URL: $ISSUE_URL"
+
+          if [ "$SUCCESS" != "True" ]; then
+            echo "\n❌ Issue creation failed. Check LINEAR_API_KEY secret and Linear plan limits."
+            exit 1
+          fi
