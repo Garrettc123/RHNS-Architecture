@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RHNS Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #131a2a;
+    --surface2: #1c2540;
+    --border: #2a3558;
+    --accent: #4f7cff;
+    --accent2: #7c5cff;
+    --text: #e4e8f5;
+    --muted: #8893b0;
+    --green: #2ed573;
+    --orange: #ffa940;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .header .logo {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header .subtitle { font-size: 13px; color: var(--muted); }
+
+  /* Status badge */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .status-bar .label { font-size: 13px; color: var(--muted); }
+  .status-bar .value { font-size: 13px; font-weight: 600; }
+  .status-bar .sep { width: 1px; height: 24px; background: var(--border); }
+
+  /* Section titles */
+  .section-title {
+    font-size: 15px; font-weight: 700;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .bar {
+    width: 4px; height: 18px; border-radius: 2px;
+    background: linear-gradient(var(--accent), var(--accent2));
+  }
+
+  /* Component cards */
+  .components-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .comp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    transition: border-color .2s, transform .2s;
+    cursor: default;
+  }
+  .comp-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .comp-card .name {
+    font-size: 14px; font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: capitalize;
+  }
+  .comp-card .name .icon { margin-right: 6px; }
+  .comp-card .desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* Reasoning modes */
+  .modes-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 28px;
+  }
+  .mode-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    text-transform: capitalize;
+  }
+
+  /* Reason form */
+  .reason-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 24px;
+  }
+  .reason-box label { font-size: 13px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 6px; }
+  .reason-box input, .reason-box textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .reason-box input:focus, .reason-box textarea:focus { border-color: var(--accent); }
+  .reason-box textarea { resize: vertical; min-height: 60px; }
+  .reason-box button {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .reason-box button:hover { opacity: .9; }
+  .reason-box button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Result */
+  .result {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    display: none;
+  }
+  .result.visible { display: block; }
+  .result .msg { font-size: 14px; margin-bottom: 12px; }
+  .result .steps-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .step-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-item .num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .step-item .step-name { font-family: monospace; }
+
+  /* Capabilities */
+  .caps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .cap-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--muted);
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 16px 0 8px;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  @media (min-width: 640px) {
+    .components-grid { grid-template-columns: 1fr 1fr; }
+    .caps-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">R</div>
+  <div>
+    <h1>RHNS Dashboard</h1>
+    <div class="subtitle" id="subtitle">Recursive Hierarchical Network System</div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="status-dot"></div>
+  <span class="value" id="statusText">Loading…</span>
+  <div class="sep"></div>
+  <span class="label">Version</span>
+  <span class="value" id="versionText">—</span>
+  <div class="sep"></div>
+  <span class="label">Author</span>
+  <span class="value" id="authorText">—</span>
+</div>
+
+<div class="section-title"><div class="bar"></div>Architecture Components</div>
+<div class="components-grid" id="componentsGrid"></div>
+
+<div class="section-title"><div class="bar"></div>Reasoning Modes</div>
+<div class="modes-row" id="modesRow"></div>
+
+<div class="section-title"><div class="bar"></div>Capabilities</div>
+<div class="caps-grid" id="capsGrid"></div>
+
+<div class="section-title"><div class="bar"></div>Submit a Goal</div>
+<div class="reason-box">
+  <label for="goalInput">Goal</label>
+  <input type="text" id="goalInput" placeholder="e.g. Plan a marketing campaign">
+  <label for="contextInput">Context (optional)</label>
+  <textarea id="contextInput" placeholder="e.g. Q3 product launch"></textarea>
+  <button id="submitBtn" onclick="submitGoal()">Submit to Reasoning Pipeline</button>
+  <div class="result" id="result">
+    <div class="msg" id="resultMsg"></div>
+    <div class="steps-label">Pipeline Steps</div>
+    <div id="stepsList"></div>
+  </div>
+</div>
+
+<div class="footer">
+  RHNS AI — <a href="/docs">API Docs</a> · <a href="/architecture">Raw JSON</a>
+</div>
+
+<script>
+  const icons = {
+    goal_tree: "🌳", memory_graph: "🧠", causal_engine: "🔗",
+    skill_synthesizer: "⚙️", metacognitive_controller: "🛡️", agent_mesh: "🕸️"
+  };
+
+  async function loadSystem() {
+    try {
+      const res = await fetch("/");
+      const data = await res.json();
+      document.getElementById("statusText").textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+      document.getElementById("versionText").textContent = "v" + data.version;
+      document.getElementById("authorText").textContent = data.author;
+      document.getElementById("subtitle").textContent = data.full_name;
+
+      const capsGrid = document.getElementById("capsGrid");
+      capsGrid.innerHTML = data.capabilities.map(c =>
+        `<div class="cap-item">${c}</div>`).join("");
+    } catch (e) {
+      document.getElementById("statusText").textContent = "Error loading system info";
+    }
+  }
+
+  async function loadArchitecture() {
+    try {
+      const res = await fetch("/architecture");
+      const data = await res.json();
+
+      const grid = document.getElementById("componentsGrid");
+      grid.innerHTML = Object.entries(data.components).map(([key, desc]) =>
+        `<div class="comp-card">
+          <div class="name"><span class="icon">${icons[key] || "📦"}</span>${key.replace(/_/g, " ")}</div>
+          <div class="desc">${desc}</div>
+        </div>`).join("");
+
+      const modesRow = document.getElementById("modesRow");
+      modesRow.innerHTML = data.reasoning_modes.map(m =>
+        `<div class="mode-chip">${m}</div>`).join("");
+    } catch (e) {
+      document.getElementById("componentsGrid").innerHTML = "<p>Error loading architecture.</p>";
+    }
+  }
+
+  async function submitGoal() {
+    const goal = document.getElementById("goalInput").value.trim();
+    const context = document.getElementById("contextInput").value.trim();
+    const btn = document.getElementById("submitBtn");
+
+    if (!goal) {
+      document.getElementById("goalInput").focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Processing…";
+
+    try {
+      let url = "/reason?goal=" + encodeURIComponent(goal);
+      if (context) url += "&context=" + encodeURIComponent(context);
+
+      const res = await fetch(url, { method: "POST" });
+      const data = await res.json();
+
+      const result = document.getElementById("result");
+      result.classList.add("visible");
+      document.getElementById("resultMsg").textContent = data.message;
+
+      const stepsList = document.getElementById("stepsList");
+      stepsList.innerHTML = data.next_steps.map((s, i) =>
+        `<div class="step-item">
+          <div class="num">${i + 1}</div>
+          <div class="step-name">${s}</div>
+        </div>`).join("");
+    } catch (e) {
+      document.getElementById("resultMsg").textContent = "Error submitting goal.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Submit to Reasoning Pipeline";
+    }
+  }
+
+  loadSystem();
+  loadArchitecture();
+</script>
+</body>
+</html>

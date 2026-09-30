@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 from typing import Optional
 import json
 
@@ -71,3 +73,9 @@ def reason(goal: str, context: Optional[str] = None):
             "synthesize_execution_plan"
         ]
     }
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard():
+    html_path = Path(__file__).parent / "static" / "dashboard.html"
+    return html_path.read_text()
