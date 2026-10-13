@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using these metadata.
+title: Recursive Hierarchical Network System (RHNS)
+abstract: Neuro-symbolic cognitive architecture for recursive, governed multi-agent reasoning. Combines recursive goal trees, federated knowledge graphs, skill synthesis, metacognitive control, and symbolic constraint enforcement. Prior art established April 27, 2026 by Garrett Carrol, Garcar Enterprise.
+authors:
+  - family-names: Carrol
+    given-names: Garrett
+    affiliation: Garcar Enterprise
+    orcid: ""
+version: 1.0.0
+date-released: "2026-10-12"
+license: CC-BY-4.0
+repository-code: "https://github.com/Garrettc123/RHNS-Architecture"
+keywords:
+  - neuro-symbolic
+  - RHNS
+  - multi-agent
+  - cognitive architecture
+  - agentic OS

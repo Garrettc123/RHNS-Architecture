@@ -1,0 +1,33 @@
+{
+  "creators": [
+    {
+      "name": "Carrol, Garrett",
+      "affiliation": "Garcar Enterprise",
+      "type": "ProjectLeader"
+    }
+  ],
+  "title": "Recursive Hierarchical Network System (RHNS): A Neuro-Symbolic Architecture for Recursive, Governed, Multi-Agent Reasoning",
+  "version": "1.0.0",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "upload_type": "software",
+  "language": "eng",
+  "keywords": [
+    "neuro-symbolic AI",
+    "RHNS",
+    "multi-agent systems",
+    "cognitive architecture",
+    "agentic OS",
+    "recursive planning",
+    "knowledge graph",
+    "governed AI"
+  ],
+  "description": "This deposit documents the original RHNS (Recursive Hierarchical Network System) architecture conceived and authored by Garrett Carrol of Garcar Enterprise. RHNS is a recursive neuro-symbolic architecture for governed multi-agent reasoning, hierarchical planning, memory integration, symbolic grounding, and reusable skill synthesis. Prior art established April 27, 2026. Public prior-art disclosure establishing authorship and timestamped architectural precedence.",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Garrettc123/RHNS-Architecture",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}
