@@ -4,7 +4,8 @@ RHNS (Recursive Hierarchical Network System) is a neuro-symbolic architecture fo
 
 Created by **Garrett Carrol** at **Garcar Enterprise**, RHNS is designed as a cognitive substrate for agentic operating systems that need to plan, remember, adapt, and execute across multiple business and scientific domains. The architecture combines recursive goal trees, graph-grounded memory, skill synthesis, metacognitive control, and runtime policy enforcement.
 
-**Prior art established: April 27, 2026**
+**Prior art established: April 27, 2026**  
+**Public IP metadata finalized: October 12, 2026** (`CITATION.cff` + `.zenodo.json` on main)
 
 [![Zenodo](https://img.shields.io/badge/Zenodo-Prior%20Art%20Deposit-blue)](docs/zenodo-description.txt)
 [![arXiv](https://img.shields.io/badge/arXiv-Preprint-red)](docs/arxiv-abstract.txt)
@@ -50,6 +51,8 @@ All documents in `/docs` were authored by Garrett Carrol and first published Apr
 ```
 RHNS-Architecture/
 ├── README.md                          # This file
+├── CITATION.cff                       # GitHub citation metadata (CFF)
+├── .zenodo.json                       # Zenodo archival metadata (takes precedence)
 ├── docs/
 │   ├── rhns-whitepaper.txt            # Full technical whitepaper
 │   ├── arxiv-abstract.txt             # arXiv submission abstract
