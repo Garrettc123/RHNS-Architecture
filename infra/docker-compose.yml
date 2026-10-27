@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  rhns-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    restart: unless-stopped
+
+  supabase:
+    image: supabase/postgres:0.140.0
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${SUPABASE_DB_PASSWORD:postgres}
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  supabase_data:
