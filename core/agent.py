@@ -85,7 +85,7 @@ class RHNSAgent:
         self.ledger.record("memory", "consolidate", {"predicates": len(all_predicates)})
 
         x = token.embedding.unsqueeze(0)
-        out, z_h, hrm_confidence = self.hrm(x, steps=1)
+        _, z_h, hrm_confidence = self.hrm(x, steps=1)
         self.ledger.record("hrm", "forward", {"confidence": hrm_confidence})
 
         best_node = self.lats.search(root_state=text)
