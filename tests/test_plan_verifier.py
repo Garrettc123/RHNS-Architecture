@@ -63,5 +63,43 @@ class PlanVerifierTests(unittest.TestCase):
         self.assertIn("PLAN-004", {v.rule_id for v in result.violations})
 
 
+    def test_rejects_unknown_plan_fields(self):
+        result = verify_plan({
+            "goal": "Read",
+            "actions": [{"action_id": "a1", "operation": "read", "target": "x"}],
+            "approved": True,
+        })
+        self.assertIn("PLAN-005", {v.rule_id for v in result.violations})
+
+    def test_rejects_unknown_action_fields(self):
+        result = verify_plan({
+            "goal": "Read",
+            "actions": [{
+                "action_id": "a1", "operation": "read", "target": "x",
+                "execute_immediately": True,
+            }],
+        })
+        self.assertIn("ACTION-005", {v.rule_id for v in result.violations})
+
+    def test_rejects_non_boolean_safety_flags(self):
+        result = verify_plan({
+            "goal": "Read",
+            "actions": [{
+                "action_id": "a1", "operation": "read", "target": "x",
+                "external_effect": "false",
+            }],
+        })
+        self.assertIn("POLICY-006", {v.rule_id for v in result.violations})
+
+    def test_rejects_overlong_targets(self):
+        result = verify_plan({
+            "goal": "Read",
+            "actions": [{
+                "action_id": "a1", "operation": "read", "target": "x" * 1025,
+            }],
+        })
+        self.assertIn("ACTION-007", {v.rule_id for v in result.violations})
+
+
 if __name__ == "__main__":
     unittest.main()
