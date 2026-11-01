@@ -1,0 +1,42 @@
+{
+  "root_goal": "Recover and close DFW trades lead",
+  "tree": [
+    {
+      "node_id": "ingest",
+      "type": "atomic",
+      "agent_id": "signal-ingest-v2",
+      "capabilities_required": ["market_signal_ingest", "perceptual_fusion"],
+      "revenue_role": "signal"
+    },
+    {
+      "node_id": "qualify",
+      "type": "atomic",
+      "agent_id": "trades-qual-v3",
+      "capabilities_required": ["lead_qualification", "opportunity_scoring"],
+      "constraints": ["score >= 0.7 before outreach"],
+      "revenue_role": "qualify"
+    },
+    {
+      "node_id": "outreach",
+      "type": "atomic",
+      "agent_id": "outreach-draft-v1",
+      "capabilities_required": ["message_generation", "approval_gated_outreach"],
+      "constraints": ["StandardsGate required", "opt_out_present", "dfw_only"],
+      "revenue_role": "outreach"
+    },
+    {
+      "node_id": "payment",
+      "type": "atomic",
+      "agent_id": "stripe-fulfill-v2",
+      "capabilities_required": ["stripe_capture", "entitlement_grant"],
+      "revenue_role": "payment"
+    },
+    {
+      "node_id": "attribute",
+      "type": "atomic",
+      "agent_id": "attrib-learn-v1",
+      "capabilities_required": ["outcome_attribution", "skill_synthesis", "graph_enrichment"],
+      "revenue_role": "attribution"
+    }
+  ]
+}

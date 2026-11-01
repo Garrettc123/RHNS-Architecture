@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  control-plane:
+    image: garcar/rhns-control:5.0
+    environment:
+      - REGISTRY_PATH=/registry
+    volumes:
+      - ./schemas:/registry:ro
+    ports:
+      - "8080:8080"
+
+  hot-state:
+    image: redis:7-alpine
+    volumes:
+      - hot-state-data:/data
+
+  cold-graph:
+    image: neo4j:5
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    volumes:
+      - cold-graph-data:/data
+
+  agent-signal:
+    image: garcar/agent-sandbox:5.0
+    environment:
+      - AGENT_ID=signal-ingest-v2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  agent-qualify:
+    image: garcar/agent-sandbox:5.0
+    environment:
+      - AGENT_ID=trades-qual-v3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  agent-outreach:
+    image: garcar/agent-sandbox:5.0
+    environment:
+      - AGENT_ID=outreach-draft-v1
+
+  agent-payment:
+    image: garcar/agent-sandbox:5.0
+    environment:
+      - AGENT_ID=stripe-fulfill-v2
+
+  agent-attribute:
+    image: garcar/agent-sandbox:5.0
+    environment:
+      - AGENT_ID=attrib-learn-v1
+
+volumes:
+  hot-state-data:
+  cold-graph-data:
+
+networks:
+  default:
+    driver: bridge
