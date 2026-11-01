@@ -90,3 +90,19 @@ protections. Production hardening still requires restricted filesystem permissio
 encrypted backups, off-host replication or immutable archival, key management, and
 independent monitoring. The hash chain detects content changes when verified; it
 does not prevent a privileged attacker from rewriting the entire database and chain.
+
+
+## API safety hardening
+
+The verification endpoint now:
+- compares bearer tokens with a constant-time comparison and remains disabled when no token is configured;
+- accepts only `application/json` requests;
+- limits request bodies to 64 KiB, including streamed bodies without a Content-Length header;
+- does not echo submitted plans or goal text in its response;
+- verifies the existing audit chain before appending a decision;
+- returns HTTP 503 rather than a normal decision if audit verification or persistence fails;
+- keeps execution disabled.
+
+Audit payloads are now serialized as canonical finite JSON before hashing. The SQLite reader rejects payload rows that are not stored in canonical form. This detects certain privileged database edits that bypass ordinary row triggers.
+
+These controls reduce risk but do not make the API production-secure by themselves. Still required before exposure to untrusted networks: TLS termination, secret-manager-backed token rotation, rate limiting, request monitoring, restricted database filesystem permissions, encrypted off-host backups, immutable external checkpoints, and independent security review. The API's health and architecture endpoints remain unauthenticated and should not be treated as private operational consoles.
