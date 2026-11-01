@@ -96,7 +96,9 @@ def _authorize(request: Request) -> None:
             detail="Reasoning endpoint is disabled: RHNS_API_TOKEN is not configured.",
         )
     supplied = request.headers.get("authorization", "")
-    if not hmac.compare_digest(supplied, f"Bearer {expected}"):
+    if not hmac.compare_digest(
+        supplied.encode("utf-8"), f"Bearer {expected}".encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Invalid or missing bearer token.")
 
 
