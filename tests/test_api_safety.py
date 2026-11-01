@@ -88,6 +88,7 @@ def test_reason_rejects_oversized_streamed_body():
 
 def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
     monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
+    monkeypatch.setenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "false")
     monkeypatch.setattr(main, "ledger", AuditLedger())
     plan = {
         "goal": "Review confidential customer record",
@@ -115,8 +116,26 @@ def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
     assert response["execution"]["performed"] is False
 
 
+
+def test_reason_requires_persistent_audit_by_default(monkeypatch):
+    monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
+    monkeypatch.delenv("RHNS_REQUIRE_PERSISTENT_AUDIT", raising=False)
+    monkeypatch.setattr(main, "ledger", AuditLedger())
+    request = make_request(
+        {
+            "authorization": "Bearer 0123456789abcdef0123456789abcdef",
+            "content-type": "application/json",
+        },
+        b'{"goal":"safe","actions":[{"action_id":"a1","operation":"read","target":"x"}]}',
+    )
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(main.reason(request))
+    assert error.value.status_code == 503
+
+
 def test_reason_fails_closed_when_audit_chain_is_invalid(monkeypatch):
     monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
+    monkeypatch.setenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "false")
 
     class BrokenLedger:
         def verify_chain(self):
