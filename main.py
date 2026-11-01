@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from audit.ledger import AuditLedger
+from audit.ledger import AuditLedger, SQLiteAuditLedger
 from symbolic.plan_verifier import verify_plan
 
 app = FastAPI(
@@ -31,7 +31,12 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
-ledger = AuditLedger()
+audit_database_path = os.getenv("RHNS_AUDIT_DB_PATH", "").strip()
+ledger = (
+    SQLiteAuditLedger(audit_database_path)
+    if audit_database_path
+    else AuditLedger()
+)
 
 
 @app.get("/")
@@ -45,7 +50,7 @@ def root() -> dict[str, Any]:
             "deterministic_policy_gate": True,
             "hash_chained_in_memory_audit": True,
             "plan_execution": False,
-            "persistent_audit_storage": False,
+            "persistent_audit_storage": isinstance(ledger, SQLiteAuditLedger) and ledger.persistent,
             "authentication_configured": bool(os.getenv("RHNS_API_TOKEN")),
         },
     }
@@ -70,7 +75,7 @@ def architecture() -> dict[str, Any]:
             "LLM planning or generation",
             "persistent memory or graph retrieval",
             "plan execution",
-            "persistent audit storage",
+            "persistent audit storage (available when RHNS_AUDIT_DB_PATH is configured)",
             "production rate limiting",
         ],
     }
@@ -116,6 +121,6 @@ async def reason(request: Request) -> dict[str, Any]:
             "index": audit_entry.index,
             "hash": audit_entry.hash,
             "chain_valid": ledger.verify_chain(),
-            "storage": "in_memory",
+            "storage": "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
         },
     }
