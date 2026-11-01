@@ -48,7 +48,8 @@ def root() -> dict[str, Any]:
         "capabilities": {
             "plan_verification": True,
             "deterministic_policy_gate": True,
-            "hash_chained_in_memory_audit": True,
+            "hash_chained_audit": True,
+            "audit_storage": "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
             "plan_execution": False,
             "persistent_audit_storage": isinstance(ledger, SQLiteAuditLedger) and ledger.persistent,
             "authentication_configured": bool(os.getenv("RHNS_API_TOKEN")),
@@ -69,13 +70,15 @@ def architecture() -> dict[str, Any]:
             "typed plan validation",
             "deterministic allowlist and side-effect policy checks",
             "structured violation reports",
-            "hash-chained in-memory decision audit",
+            "hash-chained audit ledger",
+            "SQLite persistent audit storage" if isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+            else "in-memory audit storage",
         ],
         "not_implemented": [
             "LLM planning or generation",
             "persistent memory or graph retrieval",
             "plan execution",
-            "persistent audit storage (available when RHNS_AUDIT_DB_PATH is configured)",
+            *([] if isinstance(ledger, SQLiteAuditLedger) and ledger.persistent else ["persistent audit storage"]),
             "production rate limiting",
         ],
     }
