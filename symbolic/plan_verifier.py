@@ -55,6 +55,15 @@ def verify_plan(plan: Any) -> VerificationResult:
             0,
         )
 
+    allowed_plan_fields = {"goal", "actions"}
+    unknown_plan_fields = set(plan) - allowed_plan_fields
+    if unknown_plan_fields:
+        violations.append(Violation(
+            "PLAN-005", "error",
+            "Plan contains unsupported fields: " + ", ".join(sorted(map(str, unknown_plan_fields))),
+            "Remove fields that are not part of the documented plan schema."
+        ))
+
     goal = plan.get("goal")
     actions = plan.get("actions")
 
@@ -62,6 +71,12 @@ def verify_plan(plan: Any) -> VerificationResult:
         violations.append(Violation(
             "PLAN-002", "error", "Goal must be a non-empty string.",
             "Provide a concise goal."
+        ))
+
+    elif len(goal) > 1000:
+        violations.append(Violation(
+            "PLAN-006", "error", "Goal exceeds the 1000-character limit.",
+            "Use a concise goal of at most 1000 characters."
         ))
 
     if not isinstance(actions, list) or not actions:
@@ -84,6 +99,19 @@ def verify_plan(plan: Any) -> VerificationResult:
                 "Provide action_id, operation, and target as strings."
             ))
             continue
+
+        allowed_action_fields = {
+            "action_id", "operation", "target",
+            "external_effect", "requires_human_approval",
+        }
+        unknown_action_fields = set(action) - allowed_action_fields
+        if unknown_action_fields:
+            violations.append(Violation(
+                "ACTION-005", "error",
+                "Action contains unsupported fields: " + ", ".join(sorted(map(str, unknown_action_fields))),
+                "Remove fields that are not part of the documented action schema.",
+                action.get("action_id") if isinstance(action.get("action_id"), str) else None,
+            ))
 
         action_id = action.get("action_id")
         operation = action.get("operation")
@@ -125,6 +153,33 @@ def verify_plan(plan: Any) -> VerificationResult:
             violations.append(Violation(
                 "ACTION-004", "error", "Action target must be a non-empty string.",
                 "Specify the resource or subject the action concerns.", label
+            ))
+
+        for flag_name in ("external_effect", "requires_human_approval"):
+            if flag_name in action and not isinstance(action[flag_name], bool):
+                violations.append(Violation(
+                    "POLICY-006", "error",
+                    f"Action field '{flag_name}' must be a boolean.",
+                    "Use true or false explicitly.",
+                    label,
+                ))
+
+        if isinstance(action_id, str) and len(action_id) > 128:
+            violations.append(Violation(
+                "ACTION-006", "error", "Action ID exceeds the 128-character limit.",
+                "Use an action ID of at most 128 characters.", label
+            ))
+
+        if isinstance(operation, str) and len(operation) > 64:
+            violations.append(Violation(
+                "POLICY-007", "error", "Operation exceeds the 64-character limit.",
+                "Use a supported operation name.", label
+            ))
+
+        if isinstance(target, str) and len(target) > 1024:
+            violations.append(Violation(
+                "ACTION-007", "error", "Action target exceeds the 1024-character limit.",
+                "Use a concise target of at most 1024 characters.", label
             ))
 
         if action.get("external_effect") is True:
