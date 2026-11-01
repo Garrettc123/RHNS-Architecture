@@ -100,19 +100,22 @@ class SQLiteAuditLedger:
     def __init__(self, database_path: str):
         if not database_path:
             raise ValueError("database_path must be a non-empty path")
-        self.database_path = database_path
+        self.database_path = (
+            database_path if database_path == ":memory:"
+            else str(Path(database_path).expanduser())
+        )
         self._lock = threading.RLock()
-        if database_path != ":memory:":
-            Path(database_path).expanduser().resolve().parent.mkdir(
+        if self.database_path != ":memory:":
+            Path(self.database_path).resolve().parent.mkdir(
                 parents=True, exist_ok=True
             )
         self._connection = sqlite3.connect(
-            database_path, timeout=10, check_same_thread=False
+            self.database_path, timeout=10, check_same_thread=False
         )
         self._connection.row_factory = sqlite3.Row
         with self._lock:
             self._connection.execute("PRAGMA busy_timeout = 10000")
-            if database_path != ":memory:":
+            if self.database_path != ":memory:":
                 self._connection.execute("PRAGMA journal_mode = WAL")
                 self._connection.execute("PRAGMA synchronous = FULL")
             self._connection.executescript("""
