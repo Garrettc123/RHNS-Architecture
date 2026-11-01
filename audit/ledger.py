@@ -10,6 +10,16 @@ from pathlib import Path
 from typing import List, Any
 
 
+def _canonical_payload(payload: Any) -> str:
+    """Serialize audit payloads deterministically; reject non-JSON values."""
+    try:
+        return json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Audit payload must contain finite JSON-compatible values") from exc
+
+
 def _entry_digest(index: int, timestamp: float, module: str, event: str,
                   payload: Any, prev_hash: str) -> str:
     content = json.dumps({
@@ -17,9 +27,9 @@ def _entry_digest(index: int, timestamp: float, module: str, event: str,
         "timestamp": timestamp,
         "module": module,
         "event": event,
-        "payload": str(payload),
+        "payload": _canonical_payload(payload),
         "prev_hash": prev_hash,
-    }, sort_keys=True)
+    }, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -153,6 +163,8 @@ class SQLiteAuditLedger:
         result = []
         for row in rows:
             payload = json.loads(row["payload_json"])
+            if _canonical_payload(payload) != row["payload_json"]:
+                raise ValueError("Audit payload is not stored in canonical JSON form")
             entry = AuditEntry(
                 index=row["entry_index"],
                 timestamp=row["timestamp"],
@@ -166,10 +178,7 @@ class SQLiteAuditLedger:
         return result
 
     def record(self, module: str, event: str, payload: Any) -> AuditEntry:
-        try:
-            payload_json = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        except (TypeError, ValueError) as exc:
-            raise ValueError("SQLite audit payload must be JSON-serializable") from exc
+        payload_json = _canonical_payload(payload)
 
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
