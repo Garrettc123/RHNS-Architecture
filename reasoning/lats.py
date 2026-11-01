@@ -79,8 +79,9 @@ class LATS:
             accepted.append(child)
         return accepted
 
-    def _evaluate(self, node: TreeNode) -> float:
-        score = float(self.critic(node.state))
+    def _evaluate(self, node: TreeNode, score: Optional[float] = None) -> float:
+        if score is None:
+            score = float(self.critic(node.state))
         if not math.isfinite(score):
             raise ValueError("critic must return a finite numeric score")
         node.value += score
@@ -105,8 +106,13 @@ class LATS:
                 # A dead-end is not promoted or expanded further. Its parent/root
                 # remains the best available safe state.
                 continue
-            best_child = max(children, key=lambda child: self.critic(child.state))
-            score = self._evaluate(best_child)
+            scored_children = [
+                (child, float(self.critic(child.state))) for child in children
+            ]
+            if any(not math.isfinite(score) for _, score in scored_children):
+                raise ValueError("critic must return finite numeric scores")
+            best_child, best_score = max(scored_children, key=lambda item: item[1])
+            score = self._evaluate(best_child, best_score)
             self._backpropagate(best_child, score)
 
         def best_leaf(node: TreeNode) -> TreeNode:
