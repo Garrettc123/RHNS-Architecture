@@ -63,8 +63,23 @@ def root() -> dict[str, Any]:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "healthy", "system": "RHNS AI"}
+def health() -> dict[str, Any]:
+    try:
+        chain_valid = ledger.verify_chain()
+    except Exception:
+        chain_valid = False
+    persistent_required = os.getenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "true").lower() not in {
+        "0", "false", "no"
+    }
+    storage_ready = isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+    if not chain_valid or (persistent_required and not storage_ready):
+        raise HTTPException(status_code=503, detail="RHNS audit subsystem is not ready.")
+    return {
+        "status": "healthy",
+        "system": "RHNS AI",
+        "audit_chain_valid": chain_valid,
+        "persistent_audit": storage_ready,
+    }
 
 
 @app.get("/architecture")
@@ -133,6 +148,15 @@ async def _read_bounded_json(request: Request) -> Any:
 @app.post("/reason")
 async def reason(request: Request) -> dict[str, Any]:
     _authorize(request)
+    persistent_required = os.getenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "true").lower() not in {
+        "0", "false", "no"
+    }
+    storage_ready = isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+    if persistent_required and not storage_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Reasoning endpoint disabled: persistent audit storage is required.",
+        )
     payload = await _read_bounded_json(request)
     result = verify_plan(payload)
 
