@@ -2,7 +2,6 @@
 """Hash-chained audit ledgers: in-memory compatibility and SQLite persistence."""
 import hashlib
 import json
-import os
 import sqlite3
 import threading
 import time
