@@ -111,3 +111,6 @@ These controls reduce risk but do not make the API production-secure by themselv
 ## Strict plan schema
 
 The verifier rejects unknown top-level and action fields rather than silently ignoring them. Safety flags must be actual JSON booleans. Goals, action IDs, operation names, and targets have explicit length limits. This prevents a caller from smuggling unrecognized execution directives into an otherwise valid plan and makes schema evolution deliberate.
+
+
+The API requires `RHNS_API_TOKEN` to contain at least 32 UTF-8 bytes. Generate a high-entropy token with a secret manager or a cryptographically secure generator; do not commit it or place it in source control. The response labels the result as `policy_validation_only_not_execution_authorization`: an approved result is not permission to access a resource or execute an operation.
