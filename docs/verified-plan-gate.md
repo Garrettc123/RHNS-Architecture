@@ -41,3 +41,21 @@ external effects, human-approval requirements, or more than 25 actions.
 - Authentication is bearer-token based. Production deployment still requires TLS, secret
   management, rate limiting, monitoring, and a persistent audit backend.
 - The allowlist is intentionally narrow. Extend it only with explicit policy and tests.
+
+
+## LATS integration
+
+LATS now accepts an optional deterministic candidate validator. When configured, each
+candidate is checked before it is inserted into the search tree. Invalid JSON plans,
+blocked operations, malformed plans, and any validator exception are rejected. Rejected
+candidates are counted and are never passed to the critic. If every candidate is rejected,
+the search returns the last safe parent/root state rather than promoting a rejected branch.
+
+The RHNS agent connects this gate to `symbolic.plan_verifier.verify_plan`. The current
+candidate generator is a deterministic demonstration stub that emits structured
+`propose` plans; it is not an LLM or production planner. The LATS gate is only as
+meaningful as the candidate schema and upstream plan-generation quality. It does not
+prove that a proposal is factually correct or authorize execution.
+
+New tests cover pre-critic rejection, all-candidates-rejected behavior, and compatibility
+when no validator is configured.
