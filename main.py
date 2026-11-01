@@ -17,6 +17,7 @@ from audit.ledger import AuditLedger, SQLiteAuditLedger
 from symbolic.plan_verifier import verify_plan
 
 MAX_REQUEST_BYTES = 64 * 1024
+MIN_API_TOKEN_BYTES = 32
 
 app = FastAPI(
     title="RHNS AI",
@@ -56,7 +57,7 @@ def root() -> dict[str, Any]:
             "audit_storage": "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
             "plan_execution": False,
             "persistent_audit_storage": isinstance(ledger, SQLiteAuditLedger) and ledger.persistent,
-            "authentication_configured": bool(os.getenv("RHNS_API_TOKEN")),
+            "authentication_configured": len(os.getenv("RHNS_API_TOKEN", "").encode("utf-8")) >= MIN_API_TOKEN_BYTES,
         },
     }
 
@@ -90,10 +91,10 @@ def architecture() -> dict[str, Any]:
 
 def _authorize(request: Request) -> None:
     expected = os.getenv("RHNS_API_TOKEN", "")
-    if not expected:
+    if len(expected.encode("utf-8")) < MIN_API_TOKEN_BYTES:
         raise HTTPException(
             status_code=503,
-            detail="Reasoning endpoint is disabled: RHNS_API_TOKEN is not configured.",
+            detail="Reasoning endpoint is disabled: RHNS_API_TOKEN must contain at least 32 UTF-8 bytes.",
         )
     supplied = request.headers.get("authorization", "")
     if not hmac.compare_digest(
@@ -161,6 +162,7 @@ async def reason(request: Request) -> dict[str, Any]:
     return {
         "system": "RHNS AI",
         "verification": result.to_dict(),
+        "approval_scope": "policy_validation_only_not_execution_authorization",
         "plan_summary": {
             "received": True,
             "action_count": result.checked_actions,
