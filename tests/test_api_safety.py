@@ -9,6 +9,7 @@ from audit.ledger import AuditLedger
 
 def make_request(headers=None, body=b""):
     sent = False
+
     async def receive():
         nonlocal sent
         if sent:
@@ -41,7 +42,6 @@ def test_reason_endpoint_disabled_without_token(monkeypatch):
     with pytest.raises(HTTPException) as error:
         main._authorize(make_request())
     assert error.value.status_code == 503
-
 
 
 def test_reason_endpoint_disables_short_tokens(monkeypatch):
@@ -114,7 +114,6 @@ def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
     assert response["plan_summary"]["action_count"] == 1
     assert response["audit"]["chain_valid"] is True
     assert response["execution"]["performed"] is False
-
 
 
 def test_reason_requires_persistent_audit_by_default(monkeypatch):
