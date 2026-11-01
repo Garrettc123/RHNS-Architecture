@@ -59,3 +59,34 @@ prove that a proposal is factually correct or authorize execution.
 
 New tests cover pre-critic rejection, all-candidates-rejected behavior, and compatibility
 when no validator is configured.
+
+
+## Persistent audit ledger
+
+The API can use the standard-library SQLite ledger by setting
+`RHNS_AUDIT_DB_PATH` to a writable database file on persistent storage. If the
+variable is absent, the API deliberately retains the in-memory ledger and reports
+`persistent_audit_storage: false` from `GET /`.
+
+The SQLite ledger:
+- uses WAL mode and FULL synchronous commits for file-backed databases;
+- stores structured JSON payloads and SHA-256 hash-chain links;
+- reloads prior entries after process restart;
+- installs SQLite triggers that reject ordinary UPDATE and DELETE statements;
+- exposes chain verification and JSON export.
+
+Example environment configuration:
+
+```sh
+RHNS_AUDIT_DB_PATH=/var/lib/rhns/audit.sqlite3
+```
+
+The directory must exist or be creatable by the service account, writable, and backed
+by persistent storage. A container's ephemeral filesystem is not sufficient.
+
+This is not certified WORM storage. A privileged actor who can replace the database
+file, alter its schema, or remove triggers can bypass database-level append-only
+protections. Production hardening still requires restricted filesystem permissions,
+encrypted backups, off-host replication or immutable archival, key management, and
+independent monitoring. The hash chain detects content changes when verified; it
+does not prevent a privileged attacker from rewriting the entire database and chain.
