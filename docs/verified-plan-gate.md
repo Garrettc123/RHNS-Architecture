@@ -106,3 +106,8 @@ The verification endpoint now:
 Audit payloads are now serialized as canonical finite JSON before hashing. The SQLite reader rejects payload rows that are not stored in canonical form. This detects certain privileged database edits that bypass ordinary row triggers.
 
 These controls reduce risk but do not make the API production-secure by themselves. Still required before exposure to untrusted networks: TLS termination, secret-manager-backed token rotation, rate limiting, request monitoring, restricted database filesystem permissions, encrypted off-host backups, immutable external checkpoints, and independent security review. The API's health and architecture endpoints remain unauthenticated and should not be treated as private operational consoles.
+
+
+## Strict plan schema
+
+The verifier rejects unknown top-level and action fields rather than silently ignoring them. Safety flags must be actual JSON booleans. Goals, action IDs, operation names, and targets have explicit length limits. This prevents a caller from smuggling unrecognized execution directives into an otherwise valid plan and makes schema evolution deliberate.
