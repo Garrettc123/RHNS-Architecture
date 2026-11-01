@@ -59,7 +59,6 @@ def test_sqlite_ledger_exports_audit_records(tmp_path):
     ledger.close()
 
 
-
 def test_sqlite_ledger_detects_noncanonical_payload_tampering(tmp_path):
     database = tmp_path / "tampered.sqlite3"
     ledger = SQLiteAuditLedger(str(database))
