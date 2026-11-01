@@ -114,3 +114,6 @@ The verifier rejects unknown top-level and action fields rather than silently ig
 
 
 The API requires `RHNS_API_TOKEN` to contain at least 32 UTF-8 bytes. Generate a high-entropy token with a secret manager or a cryptographically secure generator; do not commit it or place it in source control. The response labels the result as `policy_validation_only_not_execution_authorization`: an approved result is not permission to access a resource or execute an operation.
+
+
+Persistent audit is required by default for both `/reason` and a healthy `/health` response. Configure `RHNS_AUDIT_DB_PATH` to a persistent SQLite file. The in-memory fallback is for isolated development only. Setting `RHNS_REQUIRE_PERSISTENT_AUDIT=false` explicitly relaxes this requirement and must not be used in production.
