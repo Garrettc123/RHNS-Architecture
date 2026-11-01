@@ -44,7 +44,7 @@ def test_sqlite_ledger_blocks_update_and_delete(tmp_path):
 
 def test_sqlite_ledger_rejects_non_json_payload(tmp_path):
     ledger = SQLiteAuditLedger(str(tmp_path / "payload.sqlite3"))
-    with pytest.raises(ValueError, match="JSON-serializable"):
+    with pytest.raises(ValueError, match="JSON-compatible"):
         ledger.record("audit", "bad_payload", {"not_json": object()})
     assert ledger.entries == []
     ledger.close()
@@ -56,4 +56,24 @@ def test_sqlite_ledger_exports_audit_records(tmp_path):
     exported = json.loads(ledger.export_json())
     assert exported[0]["module"] == "api"
     assert exported[0]["event"] == "plan_check"
+    ledger.close()
+
+
+
+def test_sqlite_ledger_detects_noncanonical_payload_tampering(tmp_path):
+    database = tmp_path / "tampered.sqlite3"
+    ledger = SQLiteAuditLedger(str(database))
+    ledger.record("audit", "event", {"a": 1, "b": 2})
+    ledger._connection.execute(
+        "UPDATE sqlite_master SET sql = sql WHERE type = 'table'"
+    ) if False else None
+    ledger._connection.execute(
+        "PRAGMA writable_schema = ON"
+    )
+    ledger._connection.execute(
+        "UPDATE audit_entries SET payload_json = '{ \"a\": 1, \"b\": 2 }' WHERE entry_index = 0"
+    )
+    ledger._connection.commit()
+    with pytest.raises(ValueError, match="canonical JSON"):
+        _ = ledger.entries
     ledger.close()
