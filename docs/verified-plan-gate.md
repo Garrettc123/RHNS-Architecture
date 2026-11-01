@@ -37,7 +37,7 @@ external effects, human-approval requirements, or more than 25 actions.
 
 - This is deterministic policy validation, not formal proof of the real-world truth of a plan.
 - It does not execute actions or connect to an LLM.
-- The existing audit ledger is in-memory; records do not survive process restart.
+- Persistent audit is provided by the SQLite backend when `RHNS_AUDIT_DB_PATH` points to a file on persistent storage. The in-memory ledger remains available only as a development fallback; `/reason` and `/health` require persistent storage by default unless `RHNS_REQUIRE_PERSISTENT_AUDIT=false` is explicitly set. SQLite triggers and hash chaining are not certified WORM protection.
 - Authentication is bearer-token based. Production deployment still requires TLS, secret
   management, rate limiting, monitoring, and a persistent audit backend.
 - The allowlist is intentionally narrow. Extend it only with explicit policy and tests.
