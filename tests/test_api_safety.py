@@ -43,9 +43,17 @@ def test_reason_endpoint_disabled_without_token(monkeypatch):
     assert error.value.status_code == 503
 
 
+
+def test_reason_endpoint_disables_short_tokens(monkeypatch):
+    monkeypatch.setenv("RHNS_API_TOKEN", "too-short")
+    with pytest.raises(HTTPException) as error:
+        main._authorize(make_request())
+    assert error.value.status_code == 503
+
+
 def test_reason_endpoint_uses_bearer_authentication(monkeypatch):
-    monkeypatch.setenv("RHNS_API_TOKEN", "a-long-test-token")
-    main._authorize(make_request({"authorization": "Bearer a-long-test-token"}))
+    monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
+    main._authorize(make_request({"authorization": "Bearer 0123456789abcdef0123456789abcdef"}))
     with pytest.raises(HTTPException) as error:
         main._authorize(make_request({"authorization": "Bearer wrong"}))
     assert error.value.status_code == 401
@@ -79,7 +87,7 @@ def test_reason_rejects_oversized_streamed_body():
 
 
 def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
-    monkeypatch.setenv("RHNS_API_TOKEN", "a-long-test-token")
+    monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
     monkeypatch.setattr(main, "ledger", AuditLedger())
     plan = {
         "goal": "Review confidential customer record",
@@ -91,7 +99,7 @@ def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
     }
     request = make_request(
         {
-            "authorization": "Bearer a-long-test-token",
+            "authorization": "Bearer 0123456789abcdef0123456789abcdef",
             "content-type": "application/json",
         },
         __import__("json").dumps(plan).encode(),
@@ -100,6 +108,7 @@ def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
     response = asyncio.run(main.reason(request))
 
     assert response["verification"]["approved"] is True
+    assert response["approval_scope"] == "policy_validation_only_not_execution_authorization"
     assert "plan" not in response
     assert response["plan_summary"]["action_count"] == 1
     assert response["audit"]["chain_valid"] is True
@@ -107,7 +116,7 @@ def test_reason_does_not_echo_plan_and_records_audit(monkeypatch):
 
 
 def test_reason_fails_closed_when_audit_chain_is_invalid(monkeypatch):
-    monkeypatch.setenv("RHNS_API_TOKEN", "a-long-test-token")
+    monkeypatch.setenv("RHNS_API_TOKEN", "0123456789abcdef0123456789abcdef")
 
     class BrokenLedger:
         def verify_chain(self):
@@ -119,7 +128,7 @@ def test_reason_fails_closed_when_audit_chain_is_invalid(monkeypatch):
     monkeypatch.setattr(main, "ledger", BrokenLedger())
     request = make_request(
         {
-            "authorization": "Bearer a-long-test-token",
+            "authorization": "Bearer 0123456789abcdef0123456789abcdef",
             "content-type": "application/json",
         },
         b'{"goal":"safe","actions":[{"action_id":"a1","operation":"read","target":"x"}]}',
