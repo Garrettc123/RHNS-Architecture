@@ -64,12 +64,7 @@ def test_sqlite_ledger_detects_noncanonical_payload_tampering(tmp_path):
     database = tmp_path / "tampered.sqlite3"
     ledger = SQLiteAuditLedger(str(database))
     ledger.record("audit", "event", {"a": 1, "b": 2})
-    ledger._connection.execute(
-        "UPDATE sqlite_master SET sql = sql WHERE type = 'table'"
-    ) if False else None
-    ledger._connection.execute(
-        "PRAGMA writable_schema = ON"
-    )
+    ledger._connection.execute("DROP TRIGGER audit_entries_no_update")
     ledger._connection.execute(
         "UPDATE audit_entries SET payload_json = '{ \"a\": 1, \"b\": 2 }' WHERE entry_index = 0"
     )
