@@ -1,0 +1,7 @@
+# Optional providers. These are not required by the read-only API.
+-r requirements.txt
+supabase==2.3.0
+langchain-openai==0.1.0
+langchain-core==0.1.35
+jsonschema==4.20.0
+python-dotenv==1.0.1
