@@ -1,6 +1,15 @@
 # tests/test_all.py
-import pytest
 import torch
+from memory.working import WorkingMemory
+from memory.episodic import EpisodicMemory
+from memory.controller import MemoryController
+from reasoning.l_module import LModule
+from reasoning.h_module import HRMReasoner
+from reasoning.lats import LATS, TreeNode
+from metacognition.executive import MetacognitiveExecutive
+from audit.ledger import AuditLedger
+from generation.decoder import GenerationDecoder
+from core.agent import RHNSAgent
 
 # ── Symbolic ──────────────────────────────────────────────────────────────────
 from symbolic.parser import NeuralSymbolicParser, MRLPredicate
@@ -46,9 +55,6 @@ def test_kg_graph_rag():
     assert any(n.id == "smoke" for n in results)
 
 # ── Memory ────────────────────────────────────────────────────────────────────
-from memory.working import WorkingMemory
-from memory.episodic import EpisodicMemory
-from memory.controller import MemoryController
 
 def test_working_memory_capacity():
     wm = WorkingMemory(capacity=4)
@@ -83,16 +89,13 @@ def test_memory_controller_consolidate():
     assert "cat" in mc.semantic.nodes
 
 # ── Reasoning ─────────────────────────────────────────────────────────────────
-from reasoning.l_module import LModule
-from reasoning.h_module import HModule, HRMReasoner
-from reasoning.lats import LATS, TreeNode
 
 def test_l_module_output_shape():
-    l = LModule(hidden_dim=64, input_dim=32)
+    module = LModule(hidden_dim=64, input_dim=32)
     x = torch.randn(1, 32)
     h_l = torch.zeros(1, 64)
     z_h = torch.zeros(1, 64)
-    out, h_new = l(x, h_l, z_h)
+    out, h_new = module(x, h_l, z_h)
     assert out.shape == (1, 32)
     assert h_new.shape == (1, 64)
 
@@ -118,7 +121,6 @@ def test_lats_ucb_unexplored_infinity():
     assert node.ucb() == float("inf")
 
 # ── Metacognition ─────────────────────────────────────────────────────────────
-from metacognition.executive import MetacognitiveExecutive
 
 def test_meta_commit_on_high_confidence():
     v = SymbolicVerifier()
@@ -137,7 +139,6 @@ def test_meta_abort_on_contradictions():
     assert meta.state.decision == "abort"
 
 # ── Audit ─────────────────────────────────────────────────────────────────────
-from audit.ledger import AuditLedger
 
 def test_ledger_chain_valid():
     ledger = AuditLedger()
@@ -158,7 +159,6 @@ def test_ledger_export_json():
     assert "mod" in out
 
 # ── Generation ────────────────────────────────────────────────────────────────
-from generation.decoder import GenerationDecoder
 
 def test_decoder_output_shape():
     dec = GenerationDecoder(hidden_dim=64, vocab_size=100)
@@ -167,7 +167,6 @@ def test_decoder_output_shape():
     assert logits.shape == (1, 100)
 
 # ── Integration ───────────────────────────────────────────────────────────────
-from core.agent import RHNSAgent
 
 def test_agent_single_sweep():
     agent = RHNSAgent(hrm_hidden=64, hrm_input=32, hrm_T=2, lats_budget=5, vocab_size=100)

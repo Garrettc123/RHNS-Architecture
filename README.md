@@ -1,5 +1,41 @@
 # RHNS Architecture
 
+## Current implementation boundary (2026-11-21)
+
+This repository contains an architecture publication and a **prototype**, not a verified autonomous production operating system. The public API performs local, bounded predicate extraction and LATS ranking; it **does not** validate factual truth, train a neural model, invoke tools, send messages, change production data, or observe business rewards. The `reward` field is `0.0` because no external reward is observed.
+
+The experimental neural agent uses a pretrained encoder when **pre-provisioned locally**, plus untrained HRM and decoding heads. Its scores must not authorize business actions or be advertised as calibrated confidence. Its audit chain and memory are in-process and not durable.
+
+### Local API (CPU only, no model download)
+
+```bash
+python -m pip install -r requirements.txt
+uvicorn main:app --host 127.0.0.1 --port 8090
+# POST /run with JSON: {"goal":"fire causes smoke"}
+```
+
+### Tests and optional modules
+
+```bash
+python -m pip install -r requirements-neural.txt pytest pytest-cov
+python -m pytest tests/ -q
+# Optional, separate provider packages: requirements-integrations.txt
+```
+
+For containerized diagnostics: `docker compose -f infra/docker-compose.yml up --build`. It binds `127.0.0.1:8090`, runs as a non-root user, and requires no external API keys. Use an authenticated, rate-limited gateway before exposing endpoints publicly.
+
+### Release gates
+
+- Require successful GitHub Actions lint, API smoke, full Python 3.11/3.12 tests, and a reviewed PR.
+- Provision neural weights and run measured evaluations before treating neural results as valid decisions.
+- Implement tenant isolation, approval binding, persistent tamper-evident receipts, external integrations, and service monitoring separately.
+- Deploy only with explicit approval after provider credentials and deployment provenance are verified. The repository's release workflow is a **preflight only**, not an actual deployment.
+- Fleet-wide automatic credential propagation has been retired; manage provider secrets in individually authorized GitHub environments.
+
+See [implementation and gap status](docs/IMPLEMENTATION_STATUS.md).
+
+---
+
 RHNS (Recursive Hierarchical Network System) is a neuro-symbolic architecture for recursive, governed, multi-agent reasoning.
 
 Created by **Garrett Carrol** at **Garcar Enterprise**, RHNS is designed as a cognitive substrate for agentic operating systems that need to plan, remember, adapt, and execute across multiple business and scientific domains. The architecture combines recursive goal trees, graph-grounded memory, skill synthesis, metacognitive control, and runtime policy enforcement.
