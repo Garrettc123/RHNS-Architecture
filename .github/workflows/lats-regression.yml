@@ -1,0 +1,36 @@
+name: LATS Regression (stdlib)
+
+on:
+  pull_request:
+    paths:
+      - "reasoning/lats.py"
+      - "tests/test_lats*.py"
+      - ".github/workflows/lats-regression.yml"
+  push:
+    branches:
+      - "fix/lats-regression-20261121"
+    paths:
+      - "reasoning/lats.py"
+      - "tests/test_lats*.py"
+      - ".github/workflows/lats-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-lats:
+    name: LATS regression / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Syntax check
+        run: python -m compileall -q reasoning/lats.py tests/test_lats_regressions.py tests/test_lats_extra.py
+      - name: Standard-library LATS regression tests
+        run: python -m unittest discover -s tests -p 'test_lats*.py' -v
