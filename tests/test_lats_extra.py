@@ -1,7 +1,6 @@
 """Additional invariants for deterministic, bounded tree search."""
-import math
 import unittest
-from reasoning.lats import LATS, TreeNode
+from reasoning.lats import LATS
 
 
 class SearchInvariantTests(unittest.TestCase):
