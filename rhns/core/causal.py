@@ -2,11 +2,9 @@ import hashlib
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 # Minimal standalone SRR/CausalRule dataclasses (no external deps)
-from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass
