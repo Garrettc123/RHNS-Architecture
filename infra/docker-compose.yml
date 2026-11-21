@@ -1,25 +1,17 @@
-version: "3.8"
-
 services:
   rhns-api:
-    build: .
+    build:
+      context: ..
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8090:8090"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      RHNS_ALLOWED_ORIGINS: ${RHNS_ALLOWED_ORIGINS:-}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,noexec,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
-
-  supabase:
-    image: supabase/postgres:0.140.0
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_PASSWORD=${SUPABASE_DB_PASSWORD:postgres}
-    volumes:
-      - supabase_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-volumes:
-  supabase_data:
