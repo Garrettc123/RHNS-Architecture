@@ -1,14 +1,8 @@
-"""Bounded, deterministic Language Agent Tree Search (LATS).
-
-``budget`` counts node-expansion rounds, not critic invocations.  A single
-round scores up to ``n_expansions`` new candidates exactly once.  Results
-are ranked by their own finite critic scores (not ancestor backup values).
-"""
-
+# reasoning/lats.py
+"""Language Agent Tree Search with an optional fail-closed candidate gate."""
 import math
 from dataclasses import dataclass, field
-from itertools import islice
-from typing import Callable, List, Optional
+from typing import List, Optional, Callable
 
 
 @dataclass
@@ -19,16 +13,14 @@ class TreeNode:
     visits: int = 0
     value: float = 0.0
     depth: int = 0
-    # Appended to retain compatibility with existing positional construction.
     evaluation_score: Optional[float] = None
-    expanded: bool = False
 
     def ucb(self, c: float = 1.414) -> float:
         if self.visits == 0:
             return float("inf")
-        parent_visits = max(1, self.parent.visits if self.parent else 1)
+        parent_visits = self.parent.visits if self.parent else 1
         return (self.value / self.visits) + c * math.sqrt(
-            math.log(parent_visits) / self.visits
+            math.log(max(parent_visits, 1)) / self.visits
         )
 
     def is_leaf(self) -> bool:
@@ -36,11 +28,10 @@ class TreeNode:
 
 
 class LATS:
-    """Search candidate states with finite scoring and bounded expansions.
+    """Generator proposes candidates; optional validator gates them before insertion.
 
-    A generated state is scored once per search.  ``budget`` limits rounds
-    of expansion, while ``n_expansions`` limits candidates scored per round.
-    A fresh tree is built per ``search`` call.  No callbacks are swallowed.
+    The validator must be deterministic and side-effect-free. Rejected candidates
+    never enter the tree and therefore cannot be selected or evaluated by the critic.
     """
 
     def __init__(
@@ -50,91 +41,97 @@ class LATS:
         max_depth: int = 6,
         n_expansions: int = 3,
         budget: int = 20,
+        validator: Optional[Callable[[str], bool]] = None,
     ):
-        for name, value, minimum in (
-            ("max_depth", max_depth, 0),
-            ("n_expansions", n_expansions, 1),
-            ("budget", budget, 1),
-        ):
-            if type(value) is not int or value < minimum:
-                raise ValueError(f"{name} must be an integer >= {minimum}")
+        if any(type(value) is not int for value in (max_depth, n_expansions, budget)) or max_depth < 0 or n_expansions < 1 or budget < 1:
+            raise ValueError("max_depth must be a non-negative integer; n_expansions and budget must be positive integers")
         self.generator = generator
         self.critic = critic
         self.max_depth = max_depth
         self.n_expansions = n_expansions
         self.budget = budget
+        self.validator = validator
+        self.rejected_candidates = 0
 
-    def _select(self, node: TreeNode) -> Optional[TreeNode]:
-        """Select an expandable node; prune exhausted/depth-bound branches."""
-        if node.depth >= self.max_depth:
-            return None
-        if not node.expanded:
-            return node
-
-        # Preserve insertion order on UCB ties.
-        available = []
-        for child in node.children:
-            descendant = self._select(child)
-            if descendant is not None:
-                available.append((child, descendant))
-        if not available:
-            return None
-        return max(available, key=lambda pair: pair[0].ucb())[1]
+    def _select(self, node: TreeNode) -> TreeNode:
+        while not node.is_leaf():
+            node = max(node.children, key=lambda child: child.ucb())
+        return node
 
     def _expand(self, node: TreeNode) -> List[TreeNode]:
-        if node.depth >= self.max_depth or node.expanded:
+        if node.depth >= self.max_depth:
             return []
-        # islice also supports iterator generators and avoids materializing
-        # more than the configured number of child states.
-        candidates = list(islice(self.generator(node.state), self.n_expansions))
-        node.expanded = True
-        for state in candidates:
-            node.children.append(
-                TreeNode(state=state, parent=node, depth=node.depth + 1)
-            )
-        return node.children
+        candidates = self.generator(node.state)[:self.n_expansions]
+        accepted: List[TreeNode] = []
+        for candidate in candidates:
+            if not isinstance(candidate, str) or not candidate.strip():
+                self.rejected_candidates += 1
+                continue
+            if self.validator is not None:
+                try:
+                    valid = self.validator(candidate)
+                except Exception:
+                    valid = False
+                if valid is not True:
+                    self.rejected_candidates += 1
+                    continue
+            child = TreeNode(state=candidate, parent=node, depth=node.depth + 1)
+            node.children.append(child)
+            accepted.append(child)
+        return accepted
 
-    def _evaluate(self, node: TreeNode) -> float:
-        if node.evaluation_score is not None:
-            return node.evaluation_score
-        score = float(self.critic(node.state))
+    def _evaluate(self, node: TreeNode, score: Optional[float] = None) -> float:
+        if score is None:
+            score = float(self.critic(node.state))
         if not math.isfinite(score):
-            raise ValueError(f"critic returned non-finite score for {node.state!r}")
-        node.evaluation_score = score
+            raise ValueError("critic must return a finite numeric score")
         node.value += score
         node.visits += 1
+        node.evaluation_score = score
         return score
 
-    def _backpropagate(self, node: TreeNode, score: float) -> None:
+    def _backpropagate(self, node: TreeNode, score: float):
         current = node.parent
-        while current is not None:
+        discount = 0.95
+        while current:
             current.visits += 1
-            current.value += score * 0.95
+            current.value += score * discount
+            discount *= 0.95
             current = current.parent
 
     def search(self, root_state: str) -> TreeNode:
         root = TreeNode(state=root_state)
-        best: Optional[TreeNode] = None
-
-        def record(node: TreeNode) -> None:
-            nonlocal best
-            if node.evaluation_score is None:
-                score = self._evaluate(node)
-                self._backpropagate(node, score)
-            if best is None or node.evaluation_score > best.evaluation_score:
-                best = node
-
         for _ in range(self.budget):
-            selected = self._select(root)
-            if selected is None:
-                break  # every expandable branch is exhausted
-            children = self._expand(selected)
+            leaf = self._select(root)
+            children = self._expand(leaf)
             if not children:
-                record(selected)
-            else:
-                for child in children:
-                    record(child)
+                # Without a policy gate, a genuinely empty expansion is a terminal
+                # state and is evaluated once. When a validator rejects every
+                # proposal, do NOT evaluate it or imply a validated candidate.
+                if self.validator is None and leaf.visits == 0:
+                    self._evaluate(leaf)
+                continue
+            # Score every admitted candidate exactly once. This prevents
+            # unevaluated siblings (which default to zero) from outranking
+            # negative but valid critic scores.
+            scored_children = [
+                (child, float(self.critic(child.state))) for child in children
+            ]
+            if any(not math.isfinite(score) for _, score in scored_children):
+                raise ValueError("critic must return finite numeric scores")
+            for child, score in scored_children:
+                self._evaluate(child, score)
+            best_child, best_score = max(scored_children, key=lambda item: item[1])
+            self._backpropagate(best_child, best_score)
 
-        if best is None:  # zero-depth or an otherwise unexpanded root
-            record(root)
-        return best
+        # Select from all actually scored candidates, including intermediate
+        # states. Selecting leaves only can discard the best safe proposal when
+        # further expansion produces a lower-scoring descendant.
+        evaluated = []
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            if node.evaluation_score is not None:
+                evaluated.append(node)
+            stack.extend(reversed(node.children))
+        return max(evaluated, key=lambda item: item.evaluation_score) if evaluated else root

@@ -2,64 +2,69 @@ name: RHNS CI
 
 on:
   push:
-    branches: ["main", "dev", "fix/rhns-system-hardening-20261121"]
+    branches: ["main", "dev"]
   pull_request:
     branches: ["main"]
-
-permissions:
-  contents: read
 
 jobs:
   test:
     name: Test Suite (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+
     strategy:
-      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: requirements-neural.txt
-      - name: Install tested dependencies
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt', 'requirements-neural.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements-neural.txt pytest pytest-cov
-      - name: Execute full test suite with coverage
+          # The complete suite imports torch even at test collection time.
+          # Install the CPU-only build first so GitHub runners avoid CUDA wheels.
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-neural.txt
+          python -m pip install pytest pytest-cov
+
+      - name: Run tests with coverage
         run: |
-          python -m pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-report=xml
-      - name: Upload coverage
-        if: always() && matrix.python-version == '3.11'
+          pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
-          name: rhns-coverage
+          name: coverage-report
           path: coverage.xml
-          if-no-files-found: ignore
 
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: python -m pip install ruff
-      - run: ruff check . --select E,F,W --ignore E501
 
-  api-smoke:
-    name: API Smoke (minimal dependencies)
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python -m pip install -r requirements.txt pytest
-      - run: python -m pytest tests/test_api.py tests/test_lats_regressions.py tests/test_lats_extra.py -q
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff
+        run: ruff check . --select E,F,W --ignore E501
