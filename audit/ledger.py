@@ -87,10 +87,12 @@ class AuditLedger:
         return json.dumps([
             {
                 "index": entry.index,
+                "timestamp": entry.timestamp,
                 "module": entry.module,
                 "event": entry.event,
-                "payload": str(entry.payload),
-                "hash": entry.hash[:16] + "...",
+                "payload": entry.payload,
+                "prev_hash": entry.prev_hash,
+                "hash": entry.hash,
             }
             for entry in self.entries
         ], indent=2)
@@ -230,10 +232,12 @@ class SQLiteAuditLedger:
         return json.dumps([
             {
                 "index": entry.index,
+                "timestamp": entry.timestamp,
                 "module": entry.module,
                 "event": entry.event,
-                "payload": str(entry.payload),
-                "hash": entry.hash[:16] + "...",
+                "payload": entry.payload,
+                "prev_hash": entry.prev_hash,
+                "hash": entry.hash,
             }
             for entry in self.entries
         ], indent=2)
