@@ -42,8 +42,8 @@ class LATS:
         budget: int = 20,
         validator: Optional[Callable[[str], bool]] = None,
     ):
-        if max_depth < 0 or n_expansions < 1 or budget < 1:
-            raise ValueError("max_depth must be non-negative; n_expansions and budget must be positive")
+        if any(type(value) is not int for value in (max_depth, n_expansions, budget)) or max_depth < 0 or n_expansions < 1 or budget < 1:
+            raise ValueError("max_depth must be a non-negative integer; n_expansions and budget must be positive integers")
         self.generator = generator
         self.critic = critic
         self.max_depth = max_depth
@@ -71,7 +71,7 @@ class LATS:
                     valid = self.validator(candidate)
                 except Exception:
                     valid = False
-                if not valid:
+                if valid is not True:
                     self.rejected_candidates += 1
                     continue
             child = TreeNode(state=candidate, parent=node, depth=node.depth + 1)
@@ -98,22 +98,29 @@ class LATS:
             current = current.parent
 
     def search(self, root_state: str) -> TreeNode:
-        root = TreeNode(state=root_state, visits=1)
+        root = TreeNode(state=root_state)
         for _ in range(self.budget):
             leaf = self._select(root)
             children = self._expand(leaf)
             if not children:
-                # A dead-end is not promoted or expanded further. Its parent/root
-                # remains the best available safe state.
+                # Without a policy gate, a genuinely empty expansion is a terminal
+                # state and is evaluated once. When a validator rejects every
+                # proposal, do NOT evaluate it or imply a validated candidate.
+                if self.validator is None and leaf.visits == 0:
+                    self._evaluate(leaf)
                 continue
+            # Score every admitted candidate exactly once. This prevents
+            # unevaluated siblings (which default to zero) from outranking
+            # negative but valid critic scores.
             scored_children = [
                 (child, float(self.critic(child.state))) for child in children
             ]
             if any(not math.isfinite(score) for _, score in scored_children):
                 raise ValueError("critic must return finite numeric scores")
+            for child, score in scored_children:
+                self._evaluate(child, score)
             best_child, best_score = max(scored_children, key=lambda item: item[1])
-            score = self._evaluate(best_child, best_score)
-            self._backpropagate(best_child, score)
+            self._backpropagate(best_child, best_score)
 
         def best_leaf(node: TreeNode) -> TreeNode:
             if node.is_leaf():
