@@ -13,6 +13,7 @@ class TreeNode:
     visits: int = 0
     value: float = 0.0
     depth: int = 0
+    evaluation_score: Optional[float] = None
 
     def ucb(self, c: float = 1.414) -> float:
         if self.visits == 0:
@@ -86,6 +87,7 @@ class LATS:
             raise ValueError("critic must return a finite numeric score")
         node.value += score
         node.visits += 1
+        node.evaluation_score = score
         return score
 
     def _backpropagate(self, node: TreeNode, score: float):
@@ -122,11 +124,14 @@ class LATS:
             best_child, best_score = max(scored_children, key=lambda item: item[1])
             self._backpropagate(best_child, best_score)
 
-        def best_leaf(node: TreeNode) -> TreeNode:
-            if node.is_leaf():
-                return node
-            return max(
-                (best_leaf(child) for child in node.children),
-                key=lambda item: item.value / max(item.visits, 1),
-            )
-        return best_leaf(root)
+        # Select from all actually scored candidates, including intermediate
+        # states. Selecting leaves only can discard the best safe proposal when
+        # further expansion produces a lower-scoring descendant.
+        evaluated = []
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            if node.evaluation_score is not None:
+                evaluated.append(node)
+            stack.extend(reversed(node.children))
+        return max(evaluated, key=lambda item: item.evaluation_score) if evaluated else root
