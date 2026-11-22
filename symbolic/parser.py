@@ -1,6 +1,6 @@
 # symbolic/parser.py
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List
 
 @dataclass

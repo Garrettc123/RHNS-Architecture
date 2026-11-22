@@ -1,35 +1,30 @@
-name: Deploy RHNS Agentic System
+name: RHNS Release Readiness (No Deploy)
 
+# Intentionally NOT a deployment workflow. Deployment requires a separately
+# approved provider integration and a green mandatory CI suite.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
+  readiness:
+    name: Source-tree preflight only
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
+      - name: Run standalone checks
         run: |
-          pip install -r requirements.txt
-
-      - name: Run tests
+          python -m compileall -q api search reasoning/lats.py symbolic main.py
+          python -m pip install -r requirements.txt pytest
+          python -m pytest tests/test_api.py tests/test_lats_regressions.py tests/test_lats_extra.py -q
+      - name: Report correct scope
         run: |
-          pip install pytest
-          pytest tests/ -v || true
-
-      - name: Deploy to Railway
-        run: |
-          echo "Deploying RHNS Agentic System to Railway..."
-          # Railway deployment triggered via RAILWAY_TOKEN secret
-
-      - name: Notify deployment
-        run: |
-          echo "RHNS Agentic System deployment complete on main branch"
+          echo "Readiness preflight completed. No provider deployment was attempted."
+          echo "Full CI and explicit operator-approved deployment remain mandatory."
