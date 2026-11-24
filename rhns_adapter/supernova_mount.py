@@ -4,6 +4,7 @@ import os
 
 from fastapi import APIRouter, FastAPI, HTTPException, status
 
+from .compute_governance import ComputeGovernor, ComputePolicy, build_compute_governance_router
 from .gate import GatePolicy, evaluate_proposal
 from .ledger import GovernanceLedger
 from .normalizer import normalize_proposal
@@ -93,11 +94,14 @@ def mount_into_supernova_os(
     *,
     db_path: str | None = None,
     policy: GatePolicy | None = None,
+    compute_policy: ComputePolicy | None = None,
 ) -> FastAPI:
     resolved_db = db_path or os.getenv("RHNS_LEDGER_DB", "rhns_governance_ledger.db")
     ledger = GovernanceLedger(resolved_db)
     active_policy = policy or GatePolicy()
     supernova_app.include_router(build_governance_router(ledger, active_policy))
+    active_compute_policy = compute_policy if compute_policy is not None else ComputePolicy.from_environment()
+    supernova_app.include_router(build_compute_governance_router(ComputeGovernor(resolved_db, active_compute_policy)))
     return supernova_app
 
 
