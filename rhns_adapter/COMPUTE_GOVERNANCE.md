@@ -25,9 +25,10 @@ A **trusted scheduler** calls reserve before starting work and must dispatch onl
 | POST | /v1/governance/compute/cancel | Cancel and release an unstarted reservation |
 | POST | /v1/governance/compute/reconcile | Record an attributed external-meter **claim**, not auditor verification |
 | GET | /v1/governance/compute/report | Per-tenant/day allocation, pending jobs and metering claims |
+| GET | /v1/governance/compute/pending | List overdue unsettled reservations, without auto-releasing budget |
 | GET | /v1/governance/compute/verify | Recompute all event hashes and chain links |
 
-Every endpoint requires an operator-only Authorization Bearer token. Missing token or missing compute policy fails closed for reservations. Unknown GPU types and unclassified workloads are refused.
+Every endpoint requires an operator-only Authorization Bearer token. Each state-changing operation verifies the receipt chain and materialized usage within the same locked SQLite transaction *before* it authorizes or records a change; reporting uses a consistent verification snapshot. Missing token or missing compute policy fails closed for reservations. Unknown GPU types and unclassified workloads are refused.
 
 Reservation fields: tenant_id, job_id, agent_id, category, gpu_type, estimated_gpu_hours, workload_ref. Supported categories: capabilities_rd, customer_inference_trained_on, customer_inference, safeguard_classifiers and non_capabilities_rd. The first two count against capabilities limits.
 
@@ -43,7 +44,9 @@ This is a privileged operator API with a shared service secret for all tenants, 
 - GPU conversion factors, workload classification and idle capacity require separate independent measurement. Do not assert VCAD audit compliance based on this component alone.
 - Compute authorization does not authorize payouts, messages, charges, or deployment. Existing human approval gates remain intact.
 
-Before regulated production usage, add independent telemetry reconciliation, data retention and backups, external cryptographic anchoring, privileged-token rotation, stalled-reservation monitoring and per-tenant authenticated access where necessary.
+Use GET /v1/governance/compute/pending?tenant_id=<tenant>&older_than_seconds=86400 for an authenticated list of unfinished jobs. This is an investigation queue, not proof of non-use: reservations remain charged to their original UTC day until legitimately settled or cancelled. Pending results include agent ID, category, reservation hash, age and reserved GPU-equivalent hours. Do not cancel an already dispatched or possibly running job to reclaim budget without verified termination and measurement.
+
+Before regulated production usage, add independent telemetry reconciliation, data retention and backups, external cryptographic anchoring, privileged-token rotation, automated alert delivery, enforced scheduler start/stop acknowledgments, and per-tenant authenticated access where necessary. Full-ledger verification is currently O(number of events + jobs) on every write; use a verified checkpoint/indexed architecture for higher throughput.
 
 ## Tests
 
