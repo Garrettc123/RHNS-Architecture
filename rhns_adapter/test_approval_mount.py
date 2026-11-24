@@ -5,9 +5,9 @@ from fastapi.testclient import TestClient
 from rhns_adapter.supernova_mount import mount_into_supernova_os
 
 
-def test_approval_override_chain() -> None:
+def test_approval_override_chain(tmp_path) -> None:
     supernova_test_app = FastAPI()
-    mount_into_supernova_os(supernova_test_app, db_path=":memory:")
+    mount_into_supernova_os(supernova_test_app, db_path=str(tmp_path / "approval-ledger.sqlite"))
     client = TestClient(supernova_test_app)
 
     # 1. Submit financial action -> ESCALATE_HUMAN
