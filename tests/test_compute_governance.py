@@ -140,3 +140,13 @@ def test_h200_conversion_from_server_policy(tmp_path,monkeypatch):
     assert c.post("/v1/governance/compute/reserve",json=req,headers=h).json()["allowed"]
     req2=dict(reservation("b"),gpu_type="H200")
     assert not c.post("/v1/governance/compute/reserve",json=req2,headers=h).json()["allowed"]
+
+
+def test_materialized_usage_tamper_blocks_reports(tmp_path,monkeypatch):
+    g,c,h = stack(tmp_path,monkeypatch)
+    c.post("/v1/governance/compute/reserve",json=reservation(),headers=h)
+    with sqlite3.connect(g.db_path) as conn:
+        conn.execute("UPDATE compute_jobs SET estimated_gpu_equiv='999' WHERE job_id='a'")
+    assert g.verify()["reason"] == "materialized_view_mismatch"
+    day=datetime.now(timezone.utc).date().isoformat()
+    assert c.get("/v1/governance/compute/report",params={"tenant_id":"org-a","day_utc":day},headers=h).status_code == 503
