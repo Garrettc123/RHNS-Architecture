@@ -150,3 +150,71 @@ def test_materialized_usage_tamper_blocks_reports(tmp_path,monkeypatch):
     assert g.verify()["reason"] == "materialized_view_mismatch"
     day=datetime.now(timezone.utc).date().isoformat()
     assert c.get("/v1/governance/compute/report",params={"tenant_id":"org-a","day_utc":day},headers=h).status_code == 503
+
+
+def test_corrupt_accounting_blocks_all_mutations(tmp_path,monkeypatch):
+    g,c,h = stack(tmp_path,monkeypatch,max_hours="2")
+    assert c.post("/v1/governance/compute/reserve",json=reservation(),headers=h).json()["allowed"]
+    with sqlite3.connect(g.db_path) as conn:
+        conn.execute("UPDATE compute_jobs SET estimated_gpu_equiv='0.01' WHERE job_id='a'")
+    assert g.verify()["valid"] is False
+    assert c.post("/v1/governance/compute/reserve",json=reservation("b"),headers=h).status_code == 503
+    assert c.post("/v1/governance/compute/settle",json=settlement(),headers=h).status_code == 503
+    assert c.post("/v1/governance/compute/cancel",json={"tenant_id":"org-a","job_id":"a","reason":"not dispatched"},headers=h).status_code == 503
+    day=datetime.now(timezone.utc).date().isoformat()
+    rec={"tenant_id":"org-a","day_utc":day,"source":"provider",
+         "external_metered_gpu_equivalent_hours":"1","external_evidence_ref":"cloud:meter"}
+    assert c.post("/v1/governance/compute/reconcile",json=rec,headers=h).status_code == 503
+    with sqlite3.connect(g.db_path) as conn:
+        assert conn.execute("SELECT count(*) FROM compute_events").fetchone()[0] == 1
+
+
+def test_corrupt_receipt_blocks_new_budget_decision(tmp_path,monkeypatch):
+    g,c,h = stack(tmp_path,monkeypatch,max_hours="2")
+    assert c.post("/v1/governance/compute/reserve",json=reservation(),headers=h).json()["allowed"]
+    with sqlite3.connect(g.db_path) as conn:
+        conn.execute("UPDATE compute_events SET entry_hash=? WHERE seq=1",("f" * 64,))
+    denied=c.post("/v1/governance/compute/reserve",json=reservation("b"),headers=h)
+    assert denied.status_code == 503
+    assert g.verify()["valid"] is False
+    with sqlite3.connect(g.db_path) as conn:
+        assert conn.execute("SELECT count(*) FROM compute_jobs").fetchone()[0] == 1
+
+
+def test_pending_reservations_are_visible_but_not_reclaimed(tmp_path,monkeypatch):
+    g,c,h = stack(tmp_path,monkeypatch,max_hours="1")
+    monkeypatch.setattr("rhns_adapter.compute_governance._now",
+                        lambda: "2020-01-01T00:00:00+00:00")
+    assert c.post("/v1/governance/compute/reserve",json=reservation(),headers=h).json()["allowed"]
+    r=c.get("/v1/governance/compute/pending",
+            params={"tenant_id":"org-a","older_than_seconds":3600},headers=h)
+    assert r.status_code == 200
+    assert r.json()["unsettled_count"] == 1
+    assert r.json()["stale_count"] == 1
+    assert r.json()["stale_reservations"][0]["job_id"] == "a"
+    assert r.json()["automatically_released"] is False
+    # Staleness is never used as evidence that a running job consumed zero.
+    denied=c.post("/v1/governance/compute/reserve",json=reservation("b"),headers=h)
+    assert denied.status_code == 200 and denied.json()["allowed"] is False
+    assert c.get("/v1/governance/compute/pending",
+                 params={"tenant_id":"org-a"},headers={}).status_code == 401
+    assert c.get("/v1/governance/compute/pending",
+                 params={"tenant_id":"org-a","limit":0},headers=h).status_code == 409
+    assert c.post("/v1/governance/compute/settle",
+                  json=settlement(),headers=h).status_code == 200
+    assert c.get("/v1/governance/compute/pending",
+                 params={"tenant_id":"org-a"},headers=h).json()["stale_count"] == 0
+
+
+def test_parallel_reservations_cannot_overcommit_budget(tmp_path,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    g,c,h = stack(tmp_path,monkeypatch,max_hours="1")
+    def reserve_job(job):
+        return c.post("/v1/governance/compute/reserve",
+                      json=reservation(job,gpu_hours="0.75"),headers=h).json()["allowed"]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(reserve_job,["first","second"]))
+    assert results.count(True) == 1
+    assert results.count(False) == 1
+    assert g.verify()["valid"]
