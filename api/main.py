@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +11,10 @@ from pydantic import BaseModel, Field
 from search.lats_controller import LATSController
 
 logger = logging.getLogger(__name__)
+
+GOAL_MIN_LENGTH = 1
+GOAL_MAX_LENGTH = 2000
+Goal = Annotated[str, Field(min_length=GOAL_MIN_LENGTH, max_length=GOAL_MAX_LENGTH)]
 
 app = FastAPI(
     title="RHNS Symbolic Diagnostic API",
@@ -34,7 +38,7 @@ _controller = LATSController()
 
 
 class RunRequest(BaseModel):
-    goal: str = Field(min_length=1, max_length=2000)
+    goal: Goal
     schema: Literal["general_reasoning"] = "general_reasoning"
 
 
@@ -82,7 +86,7 @@ def run_agent(request: RunRequest):
 
 
 @app.post("/run/batch")
-def run_batch(goals: list[str]):
+def run_batch(goals: list[Goal]):
     if not 1 <= len(goals) <= 20:
         raise HTTPException(status_code=422, detail="batch must contain 1 to 20 goals")
     return {
@@ -92,7 +96,10 @@ def run_batch(goals: list[str]):
 
 
 @app.post("/reason")
-def reason(goal: str = Query(min_length=1, max_length=2000), context: str | None = None):
+def reason(
+    goal: str = Query(min_length=GOAL_MIN_LENGTH, max_length=GOAL_MAX_LENGTH),
+    context: str | None = None,
+):
     """Legacy query interface. Context is returned, not silently interpreted."""
     return {
         "goal_received": goal,
