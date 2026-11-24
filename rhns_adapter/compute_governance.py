@@ -199,6 +199,7 @@ class ComputeGovernor:
         equivalent = request.estimated_gpu_hours * self.policy.gpu_equivalence[request.gpu_type]
         with self._conn() as c:
             c.execute("BEGIN IMMEDIATE")
+            self._assert_integrity(c)
             prior = c.execute("SELECT * FROM compute_jobs WHERE tenant_id=? AND job_id=?",(request.tenant_id,request.job_id)).fetchone()
             if prior:
                 if prior["request_json"] != _json(req):
@@ -231,6 +232,7 @@ class ComputeGovernor:
         req = request.model_dump(mode="json")
         with self._conn() as c:
             c.execute("BEGIN IMMEDIATE")
+            self._assert_integrity(c)
             job = c.execute("SELECT * FROM compute_jobs WHERE tenant_id=? AND job_id=?",(request.tenant_id,request.job_id)).fetchone()
             if not job:
                 raise KeyError("Unknown reservation")
@@ -260,6 +262,7 @@ class ComputeGovernor:
     def cancel(self, request: CancelReservation) -> dict[str, Any]:
         with self._conn() as c:
             c.execute("BEGIN IMMEDIATE")
+            self._assert_integrity(c)
             job = c.execute("SELECT * FROM compute_jobs WHERE tenant_id=? AND job_id=?",(request.tenant_id,request.job_id)).fetchone()
             if not job:
                 raise KeyError("Unknown reservation")
@@ -277,6 +280,7 @@ class ComputeGovernor:
         payload = request.model_dump(mode="json")
         with self._conn() as c:
             c.execute("BEGIN IMMEDIATE")
+            self._assert_integrity(c)
             prior = c.execute("SELECT * FROM compute_reconciliations WHERE tenant_id=? AND day_utc=? AND source=?",(request.tenant_id,day,request.source)).fetchone()
             if prior:
                 if prior["claim_json"] != _json(payload):
@@ -287,12 +291,12 @@ class ComputeGovernor:
             return {"receipt":receipt,"independently_verified":False}
 
     def report(self, tenant_id: str, day_utc: str) -> dict[str, Any]:
-        if not self.verify()["valid"]:
-            raise RuntimeError("Compute accounting integrity failed; refusing report")
         day = datetime.fromisoformat(day_utc).date().isoformat()
         if day != day_utc:
             raise ValueError("Invalid UTC date")
         with self._conn() as c:
+            c.execute("BEGIN")
+            self._assert_integrity(c)
             total, caps, categories = self._totals(c,tenant_id,day)
             jobs = c.execute("SELECT state,settlement_json FROM compute_jobs WHERE tenant_id=? AND day_utc=?",(tenant_id,day)).fetchall()
             reconciliations = [json.loads(r["claim_json"]) for r in c.execute("SELECT claim_json FROM compute_reconciliations WHERE tenant_id=? AND day_utc=?",(tenant_id,day))]
@@ -304,9 +308,8 @@ class ComputeGovernor:
                     "external_meter_claims":reconciliations,"independently_verified":False,
                     "accounting_completeness":"UNVERIFIED", "policy_configured":self.policy is not None}
 
-    def verify(self) -> dict[str, Any]:
-        with self._conn() as c:
-            rows = c.execute("SELECT * FROM compute_events ORDER BY seq ASC").fetchall()
+    def _verify_connection(self, c: sqlite3.Connection) -> dict[str, Any]:
+        rows = c.execute("SELECT * FROM compute_events ORDER BY seq ASC").fetchall()
         previous = GENESIS
         for expected_seq, row in enumerate(rows,1):
             try:
@@ -360,9 +363,8 @@ class ComputeGovernor:
                     expected_claims[key] = (_json(event), row["seq"])
                 elif kind != "RESERVE_DENIED":
                     raise ValueError("Unknown compute event type")
-            with self._conn() as c:
-                jobs = c.execute("SELECT * FROM compute_jobs").fetchall()
-                claims = c.execute("SELECT * FROM compute_reconciliations").fetchall()
+            jobs = c.execute("SELECT * FROM compute_jobs").fetchall()
+            claims = c.execute("SELECT * FROM compute_reconciliations").fetchall()
             if len(jobs) != len(expected_jobs) or len(claims) != len(expected_claims):
                 raise ValueError("Projection row count mismatch")
             for job in jobs:
@@ -377,6 +379,61 @@ class ComputeGovernor:
         except (ValueError, TypeError, KeyError):
             return {"valid":False,"entries_verified":len(rows),"reason":"materialized_view_mismatch"}
         return {"valid":True,"entries_verified":len(rows),"tip_hash":previous,"externally_anchored":False}
+
+    def verify(self) -> dict[str, Any]:
+        """Verify chain and materialized usage together in one consistent SQLite snapshot."""
+        with self._conn() as c:
+            c.execute("BEGIN")
+            return self._verify_connection(c)
+
+    def _assert_integrity(self, c: sqlite3.Connection) -> None:
+        """Refuse budget decisions or ledger mutations on inconsistent state.
+
+        Called inside BEGIN IMMEDIATE before changes, preventing concurrent
+        writers from invalidating the verification prior to authorization.
+        """
+        result = self._verify_connection(c)
+        if not result["valid"]:
+            raise RuntimeError("Compute accounting integrity failed; refusing operation")
+
+    def pending(self, tenant_id: str, older_than_seconds: int = 86400, limit: int = 100) -> dict[str, Any]:
+        """Read-only list of unmetered reservations; never silently reclaim them."""
+        if not tenant_id or not tenant_id.strip():
+            raise ValueError("tenant_id must not be empty")
+        if older_than_seconds < 0 or limit < 1 or limit > 500:
+            raise ValueError("Invalid pending inspection bounds")
+        with self._conn() as c:
+            c.execute("BEGIN")
+            self._assert_integrity(c)
+            rows = c.execute(
+                """SELECT j.job_id, j.day_utc, j.request_json, e.recorded_at_utc,
+                          e.entry_hash, j.estimated_gpu_equiv
+                   FROM compute_jobs AS j
+                   JOIN compute_events AS e ON e.seq=j.reserve_seq
+                   WHERE j.tenant_id=? AND j.state='RESERVED'
+                   ORDER BY e.recorded_at_utc ASC""",
+                (tenant_id,),
+            ).fetchall()
+        current = datetime.now(timezone.utc)
+        overdue = []
+        for row in rows:
+            age = max(0, int((current - datetime.fromisoformat(row["recorded_at_utc"])).total_seconds()))
+            if age >= older_than_seconds:
+                req = json.loads(row["request_json"])
+                overdue.append({
+                    "job_id": row["job_id"], "agent_id": req["agent_id"],
+                    "category": req["category"], "day_utc": row["day_utc"],
+                    "reserved_gpu_equivalent_hours": row["estimated_gpu_equiv"],
+                    "reserved_at_utc": row["recorded_at_utc"],
+                    "age_seconds": age, "reservation_entry_hash": row["entry_hash"],
+                })
+        return {
+            "tenant_id": tenant_id, "threshold_seconds": older_than_seconds,
+            "unsettled_count": len(rows), "stale_count": len(overdue),
+            "stale_reservations": overdue[:limit], "truncated": len(overdue) > limit,
+            "automatically_released": False,
+            "accounting_completeness": "UNVERIFIED",
+        }
 
 
 def build_compute_governance_router(governor: ComputeGovernor) -> APIRouter:
@@ -422,6 +479,10 @@ def build_compute_governance_router(governor: ComputeGovernor) -> APIRouter:
     @router.get("/report", dependencies=auth)
     def report(tenant_id: str, day_utc: str):
         return guard(governor.report,tenant_id,day_utc)
+
+    @router.get("/pending", dependencies=auth)
+    def pending(tenant_id: str, older_than_seconds: int = 86400, limit: int = 100):
+        return guard(governor.pending,tenant_id,older_than_seconds,limit)
 
     @router.get("/verify", dependencies=auth)
     def verify():
