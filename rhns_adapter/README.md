@@ -33,3 +33,7 @@ pytest rhns_adapter/test_approval_mount.py -q
 - Baseline proof_hash: 2398aa32e69202313aeccadacb6638f32eb7e9df5697ad93f080a4fcc05a3060
 
 SKU: AI-AUDIT-299 https://buy.stripe.com/14A5kD3IF9Sqdrd05l43S2l
+
+## Compute accounting and budget enforcement
+
+Authenticated compute endpoints are mounted under `/v1/governance/compute/` (reserve, settle, cancel, reconcile, report, verify). Unknown hardware and missing policies fail closed. These endpoints require `RHNS_COMPUTE_API_TOKEN` and a validated `RHNS_COMPUTE_POLICY_JSON`; they do not establish an independently audited VCAD disclosure. See [COMPUTE_GOVERNANCE.md](COMPUTE_GOVERNANCE.md) for integration and assurance boundaries.
