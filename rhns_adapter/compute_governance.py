@@ -287,6 +287,8 @@ class ComputeGovernor:
             return {"receipt":receipt,"independently_verified":False}
 
     def report(self, tenant_id: str, day_utc: str) -> dict[str, Any]:
+        if not self.verify()["valid"]:
+            raise RuntimeError("Compute accounting integrity failed; refusing report")
         day = datetime.fromisoformat(day_utc).date().isoformat()
         if day != day_utc:
             raise ValueError("Invalid UTC date")
@@ -318,6 +320,62 @@ class ComputeGovernor:
             if not valid:
                 return {"valid":False,"entries_verified":expected_seq-1,"failed_seq":expected_seq}
             previous = row["entry_hash"]
+        # Verify the mutable SQL projection matches the event ledger. Otherwise a
+        # modified jobs table could yield false reports while event hashes still pass.
+        expected_jobs: dict[tuple[str, str], dict[str, Any]] = {}
+        expected_claims: dict[tuple[str, str, str], tuple[str, int]] = {}
+        try:
+            for row in rows:
+                event = json.loads(row["payload_json"])
+                kind = row["kind"]
+                if kind == "RESERVE_ALLOWED":
+                    key = (event["tenant_id"], event["job_id"])
+                    if key in expected_jobs:
+                        raise ValueError("Duplicate authorization in ledger")
+                    expected_jobs[key] = {
+                        "day_utc": event["day_utc"],
+                        "request_json": _json(event["reservation"]),
+                        "estimated_gpu_equiv": event["estimated_gpu_equiv"],
+                        "actual_gpu_equiv": None, "settlement_json": None,
+                        "state": "RESERVED", "reserve_seq": row["seq"], "final_seq": None,
+                    }
+                elif kind == "SETTLED":
+                    key = (event["tenant_id"], event["job_id"])
+                    if key not in expected_jobs or expected_jobs[key]["state"] != "RESERVED":
+                        raise ValueError("Settlement without active reservation")
+                    expected_jobs[key].update({
+                        "actual_gpu_equiv": event["actual_gpu_equiv"],
+                        "settlement_json": _json(event["settlement"]),
+                        "state": "SETTLED", "final_seq": row["seq"],
+                    })
+                elif kind == "CANCELLED":
+                    key = (event["tenant_id"], event["job_id"])
+                    if key not in expected_jobs or expected_jobs[key]["state"] != "RESERVED":
+                        raise ValueError("Cancellation without active reservation")
+                    expected_jobs[key].update({"state": "CANCELLED", "final_seq": row["seq"]})
+                elif kind == "METER_RECONCILIATION_CLAIM":
+                    key = (event["tenant_id"], event["day_utc"], event["source"])
+                    if key in expected_claims:
+                        raise ValueError("Duplicate reconciliation claim")
+                    expected_claims[key] = (_json(event), row["seq"])
+                elif kind != "RESERVE_DENIED":
+                    raise ValueError("Unknown compute event type")
+            with self._conn() as c:
+                jobs = c.execute("SELECT * FROM compute_jobs").fetchall()
+                claims = c.execute("SELECT * FROM compute_reconciliations").fetchall()
+            if len(jobs) != len(expected_jobs) or len(claims) != len(expected_claims):
+                raise ValueError("Projection row count mismatch")
+            for job in jobs:
+                key = (job["tenant_id"], job["job_id"])
+                expected = expected_jobs.get(key)
+                if expected is None or any(job[field] != value for field, value in expected.items()):
+                    raise ValueError("Job projection mismatch")
+            for claim in claims:
+                key = (claim["tenant_id"], claim["day_utc"], claim["source"])
+                if expected_claims.get(key) != (claim["claim_json"], claim["receipt_seq"]):
+                    raise ValueError("Meter claim projection mismatch")
+        except (ValueError, TypeError, KeyError):
+            return {"valid":False,"entries_verified":len(rows),"reason":"materialized_view_mismatch"}
         return {"valid":True,"entries_verified":len(rows),"tip_hash":previous,"externally_anchored":False}
 
 
