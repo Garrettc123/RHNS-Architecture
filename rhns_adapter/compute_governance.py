@@ -203,7 +203,8 @@ class ComputeGovernor:
             if prior:
                 if prior["request_json"] != _json(req):
                     raise ComputeConflict("Reused job_id with different reservation")
-                return {"allowed":prior["state"] != "CANCELLED", "state":prior["state"],
+                # A replay must never grant another dispatch authorization.
+                return {"allowed":False, "state":prior["state"], "reason":"duplicate_job_id",
                         "receipt":self._receipt(c,prior["reserve_seq"]),"idempotent":True}
             total, caps, _ = self._totals(c, request.tenant_id, day)
             next_total = total + equivalent
