@@ -44,6 +44,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           pytest tests/ -v --tb=short --cov=. --cov-report=term-missing --cov-report=xml
+          python -m pytest -q rhns_adapter/test_approval_mount.py
 
       - name: Upload coverage report
         if: matrix.python-version == '3.11'
