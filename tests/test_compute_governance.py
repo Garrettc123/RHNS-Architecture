@@ -57,6 +57,7 @@ def test_reservation_limit_and_idempotence(tmp_path,monkeypatch):
     assert r.status_code == 200 and r.json()["allowed"]
     replay = c.post("/v1/governance/compute/reserve",json=req,headers=h)
     assert replay.json()["idempotent"] is True
+    assert replay.json()["allowed"] is False  # never redispatch a duplicate job
     assert replay.json()["receipt"]["entry_hash"] == r.json()["receipt"]["entry_hash"]
     denied = c.post("/v1/governance/compute/reserve",json=reservation("two","capabilities_rd","1"),headers=h)
     assert not denied.json()["allowed"]
