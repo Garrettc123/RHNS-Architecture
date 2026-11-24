@@ -43,7 +43,8 @@ def test_auth_is_fail_closed(tmp_path, monkeypatch):
 def test_policy_is_fail_closed(tmp_path,monkeypatch):
     g = ComputeGovernor(str(tmp_path / "none.db"),None)
     monkeypatch.setenv("RHNS_COMPUTE_API_TOKEN","key")
-    app = FastAPI(); app.include_router(build_compute_governance_router(g))
+    app = FastAPI()
+    app.include_router(build_compute_governance_router(g))
     c = TestClient(app)
     r = c.post("/v1/governance/compute/reserve",json=reservation(),headers={"Authorization":"Bearer key"})
     assert r.status_code == 503
