@@ -108,6 +108,9 @@ class GovernanceLedger:
             "verdict": verdict,
             "justification": justification,
             "signature_hex": signature_hex,
+            "trace_id": str(prior["trace_id"]),
+            "provider": str(prior["provider"]),
+            "model": str(prior["model"]),
         }
         canonical_bytes = canonical_json_bytes(override_payload)
         canonical_hash = sha256_hex(canonical_bytes)
@@ -192,6 +195,9 @@ class GovernanceLedger:
             "proposal_id": proposal_id,
             "decision": decision.value,
             "violations": violations,
+            "trace_id": trace_id,
+            "provider": provider,
+            "model": model,
         }
         canonical_bytes = canonical_json_bytes(payload)
         canonical_hash = sha256_hex(canonical_bytes)
@@ -262,15 +268,69 @@ class GovernanceLedger:
             conn.close()
 
     def verify_chain(self) -> dict[str, object]:
+        """Recalculate every stored digest, link and covered payload field.
+
+        Historical rows may not include provider/model in their signed payload.
+        External anchoring is still required to detect full-chain rewrites/truncation.
+        """
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT seq, entry_hash, prev_hash FROM governance_ledger ORDER BY seq ASC;"
+                "SELECT * FROM governance_ledger ORDER BY seq ASC;"
             ).fetchall()
-        if not rows:
-            return {"valid": True, "entries_verified": 0}
         prev = GENESIS_HASH
-        for row in rows:
-            if str(row["prev_hash"]) != prev:
-                return {"valid": False, "entries_verified": int(row["seq"]) - 1, "reason": "hash mismatch"}
+        for expected_seq, row in enumerate(rows, 1):
+            try:
+                payload = json.loads(row["canonical_payload_json"])
+                violations = json.loads(row["violated_rules_json"])
+                canonical_bytes = canonical_json_bytes(payload)
+                canonical_hash = sha256_hex(canonical_bytes)
+                record_type = str(row["record_type"])
+                expected_decision = str(row["decision"])
+                if record_type == LedgerRecordType.PROPOSAL_DECISION.value:
+                    consistent = (
+                        payload["record_type"] == record_type
+                        and payload["proposal_id"] == row["proposal_id"]
+                        and payload["decision"] == expected_decision
+                        and payload["violations"] == violations
+                    )
+                elif record_type == LedgerRecordType.APPROVAL_OVERRIDE.value:
+                    consistent = (
+                        payload["record_type"] == record_type
+                        and payload["target_proposal_id"] == row["proposal_id"]
+                        and expected_decision == (
+                            GateDecision.ALLOW.value if payload["verdict"] == "APPROVE"
+                            else GateDecision.DENY.value if payload["verdict"] == "REJECT"
+                            else "INVALID"
+                        )
+                    )
+                else:
+                    consistent = False
+                for field in ("trace_id", "provider", "model"):
+                    if field in payload and payload[field] != row[field]:
+                        consistent = False
+                hash_decision = (
+                    f"{LedgerRecordType.APPROVAL_OVERRIDE.value}:{expected_decision}"
+                    if record_type == LedgerRecordType.APPROVAL_OVERRIDE.value
+                    else expected_decision
+                )
+                entry_hash = self._compute_entry_hash(
+                    seq=int(row["seq"]), proposal_id=str(row["proposal_id"]),
+                    trace_id=str(row["trace_id"]), decision=hash_decision,
+                    canonical_hash=str(row["canonical_hash"]), prev_hash=str(row["prev_hash"]),
+                    recorded_at_utc=str(row["recorded_at_utc"]),
+                )
+                valid = (
+                    row["seq"] == expected_seq and str(row["prev_hash"]) == prev
+                    and row["canonical_hash"] == canonical_hash
+                    and row["canonical_payload_json"] == canonical_bytes.decode("utf-8")
+                    and row["entry_hash"] == entry_hash
+                    and consistent
+                )
+            except (ValueError, TypeError, KeyError):
+                valid = False
+            if not valid:
+                return {"valid": False, "entries_verified": expected_seq - 1,
+                        "failed_seq": expected_seq}
             prev = str(row["entry_hash"])
-        return {"valid": True, "entries_verified": len(rows)}
+        return {"valid": True, "entries_verified": len(rows),
+                "tip_hash": prev, "externally_anchored": False}
