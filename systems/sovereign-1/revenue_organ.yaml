@@ -1,0 +1,98 @@
+id: revenue
+family: Revenue
+version: 0.1.0
+display_name: Revenue Organ
+purpose: Closes paid loop from lead intake through checkout for LLA-47 and audit SKUs.
+
+ports:
+  requires:
+    - core.identity
+    - core.events
+    - core.audit
+    - rhns.cmc
+    - rhns.kg
+  provides:
+    - revenue.intake
+    - revenue.enrich
+    - revenue.checkout_ready
+
+events:
+  in:
+    - name: lead.captured
+      schema: LeadCaptured
+    - name: proposal.accepted
+      schema: ProposalAccepted
+  out:
+    - name: lead.enriched
+      schema: LeadEnriched
+    - name: checkout.ready
+      schema: CheckoutReady
+    - name: revenue.closed
+      schema: RevenueClosed
+
+schema:
+  objects:
+    - Lead
+    - Opportunity
+    - CheckoutSession
+  migrations: []
+
+policy:
+  scope:
+    - leads.read
+    - leads.write
+    - opportunities.write
+  forbidden:
+    - billing.charge
+    - stripe.refund
+
+health:
+  probes:
+    - liveness
+    - readiness
+  signals:
+    degraded: connector latency > 2s
+    blocked: required port missing or CMC commit denied
+
+rhns:
+  planner: rgt+hrm
+  gate: cmc
+  commit_required_for:
+    - outreach.send
+    - checkout.initiate
+  memory: federated-kg
+  audit: ledger
+  thresholds:
+    commit: confidence >= 0.72 and contradictions < 2
+    escalate: stall_count >= 3
+    abort: contradictions >= 2
+
+detach:
+  order:
+    - deactivate subscriptions
+    - freeze writes
+    - export owned schema
+    - drop routes
+  retains:
+    - audit ledger rows
+    - revenue_events linked to proof_hash
+  rollback: restore last certified schema version
+
+pricing:
+  sku: BF-REV-001
+  pack: Revenue
+  model: snap-module
+  interval: monthly
+
+skeleton_hops:
+  - intake
+  - enrichment
+  - outreach
+  - proposal
+  - checkout
+  - crm_sync
+
+notes:
+  proof_hash: 2398aa32e69202313aeccadacb6638f32eb7e9df5697ad93f080a4fcc05a3060
+  system: sovereign-1
+  attached_after: Sovereign One live cycle
