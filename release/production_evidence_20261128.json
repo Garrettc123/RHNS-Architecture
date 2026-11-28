@@ -1,30 +1,56 @@
 {
-  "report_version": "2026-11-28-v1",
+  "report_version": "2026-11-28-fullstack-acceptance-v2",
   "scope": "RHNS MARS phased production evidence",
-  "disposition": "PARTIAL_HTTP_PRODUCTION_ONLY",
-  "claims_boundary": "Build READY and HTTP liveness do not establish configured durable runtime, model inference, trading, messaging, revenue or customer execution.",
+  "disposition": "BOUNDED_READ_ONLY_CORE_LIVE_FULL_CERTIFICATION_BLOCKED",
+  "claims_boundary": "Live internal and cross-platform policy-only tests prove a bounded L0/L1 operational core; they do NOT prove whole-repository CI, independent regulatory/SOC2 certification, volume backup restore, $25 monthly spend hard limit, paid model execution, customer outreach, trading or deployed research systems.",
   "live_production": [
     {
       "repo": "Garrettc123/mars-production",
-      "github_pr": 9,
-      "main_sha": "75c7c110ff0a93a9661f3ad5c275ef79006d3a79",
+      "git_main_sha": "75c7c110ff0a93a9661f3ad5c275ef79006d3a79",
+      "platform": "Vercel",
       "deployment_id": "dpl_E5JgSoLCWJR8FH3cTbLjxurHCyng",
-      "target": "production",
-      "deployment_status": "READY",
-      "http_health_observed_previous_release": true,
-      "service_api_secret_installed": true,
-      "paid_inference_enabled": false
+      "ready": true,
+      "public_health_status": 200,
+      "operator_api_key_required": true,
+      "model_inference_enabled": false,
+      "production_ssoprotection": "preview_only"
     },
     {
       "repo": "Garrettc123/mars-api",
-      "github_pr": 7,
-      "main_sha": "7fa899dcde3c441fbeda7f2de8425c1cbacea40e",
-      "deployment_id": "dpl_5YCdhsUh2MT21sbHgfHUkg4kegEw",
-      "target": "production",
-      "deployment_status": "READY",
-      "http_health_observed_previous_release": true,
-      "service_api_secret_installed": true,
-      "task_bridge_enabled": false
+      "git_main_sha": "7fa899dcde3c441fbeda7f2de8425c1cbacea40e",
+      "platform": "Vercel",
+      "deployment_id": "dpl_6WsyNP67VXYxXMHfookKL1GGpa86",
+      "ready": true,
+      "public_health_status": 200,
+      "operator_bearer_required": true,
+      "rhns_task_bridge_enabled": true,
+      "mars_reason_wired": true,
+      "production_ssoprotection": "preview_only"
+    },
+    {
+      "service": "Postgres",
+      "platform": "Railway",
+      "project_id": "fe0f596e-61c7-418a-a02d-e45c913b870c",
+      "deployment_id": "236c4801-c117-47a9-85b7-ca4ac4c4b44b",
+      "state": "online",
+      "durable_volume": true
+    },
+    {
+      "service": "rhns-governance-api",
+      "platform": "Railway",
+      "git_main_sha": "ab8f106f9bd766c3b750013469ab5c7867dba3ce",
+      "deployment_id": "3f684305-961f-4be1-8801-1a8971ed007f",
+      "state": "online",
+      "postgres_audit_role_verified": true
+    },
+    {
+      "service": "rhns-governed-worker",
+      "platform": "Railway",
+      "git_branch_sha": "8635a997d7c9e11bdbbf9eab5447ab40a3d8e633",
+      "deployment_id": "fc48789f-7d64-4acd-8d29-35eb91882011",
+      "state": "online",
+      "durable_sqlite_volume": true,
+      "private_pr_unmerged": true
     }
   ],
   "merged_governance": [
@@ -57,29 +83,60 @@
     }
   ],
   "railway_provisioning": {
-    "project_id": "fe0f596e-61c7-418a-a02d-e45c913b870c",
     "project_name": "garcar-rhns-runtime-production",
+    "project_id": "fe0f596e-61c7-418a-a02d-e45c913b870c",
     "environment_id": "0cdaeaaf-3194-4497-a887-5f5ffa1d4234",
-    "state": "STAGED_NOT_APPLIED",
-    "services": [
+    "state": "LIVE_THREE_SERVICES_NO_PENDING_PATCH",
+    "active_services": [
       "Postgres",
-      "rhns-audit-bootstrap",
       "rhns-governance-api",
       "rhns-governed-worker"
     ],
-    "separate_volume_for_sqlite_worker": true,
-    "cost_approval_and_live_deployment_verified": false,
-    "database_schema_migrated": false,
-    "runtime_end_to_end_verified": false
+    "durable_volumes": [
+      "postgres-volume",
+      "rhns-durable-task-ledger"
+    ],
+    "one_shot_migration": "SUCCESS_AND_REMOVED",
+    "one_shot_probes": "REMOVED_AFTER_RESULTS",
+    "additional_monthly_budget_usd": 25,
+    "cpu_memory_capped_estimate_usd_per_month": 18.75,
+    "budget_estimate_excludes": [
+      "volume_used_storage",
+      "egress",
+      "other_workspace_services"
+    ],
+    "workspace_hard_spending_limit_verified": false,
+    "database_schema_and_least_privilege": true,
+    "live_worker_persistence_and_restart_verified": true
   },
   "unresolved_gates": [
-    "Eight private GitHub repositories reported failed jobs with absent executable step reports; root cause not proven",
-    "Dedicated Railway project may incur hosting charges once staged changes are applied",
-    "RHNS worker must demonstrate guarded authenticated L0/L1 task, idempotency, persistent receipt verification and cold restart",
-    "RHNS governance PostgreSQL runtime must demonstrate least-privilege role, append-only trigger and persistence chain",
-    "MARS API task bridge must remain off until worker endpoint, TLS, identity and tenant verification are complete",
-    "No model inference, customer outreach, payments, trades, clusters or GitOps auto-sync authorized by this report"
+    "Private GitHub Actions for rhns-agent-core PR #22 and related eight private repositories fail before test steps with runner_id 0; owner account/settings resolution required",
+    "Railway volume backup and restore exercises remain unavailable via the connected account tools",
+    "Railway workspace-wide hard bill spending cap for approved incremental $25/month not verified; resource limits do not enforce a billing ceiling",
+    "Remaining multi-repository research, Cloudflare, Argo and Ray deployments not demonstrated as production services",
+    "Third-party security, SOC 2 and independent production certification not issued",
+    "ChatGPT dedicated hourly RHNS automation could not be created because plan permits only five active scheduled tasks"
   ],
   "automated_builds_paused": true,
-  "verified_full_platform_production": false
+  "verified_full_platform_production": false,
+  "acceptance_tests": {
+    "timestamp_utc": "2026-11-28",
+    "audited_postgres_schema": "PASS; migration result logged; admin migrator deleted",
+    "governance_policy_and_hash_chain": "PASS; unauthorized 401, authorized read-only /reason 200, stored audit chain verified",
+    "worker_authorized_task_and_receipts": "PASS; task action-guard/verify, no external action, receipt chain valid",
+    "worker_cold_restart_persistence": "PASS; job 5668f420-8529-428c-a74c-7284be45f973 survived same-service restart with receipts and idempotency",
+    "mars_to_rhns_real_job": "PASS; job 5f50259b-1bc0-4878-b36f-5927c8b3af33 via Vercel API and Railway worker; 401 operator guard without token; dedupe persisted",
+    "mars_to_reasoning_disabled_inference": "PASS; MARS API /api/mars/status reached MARS reason v1.1.0; /api/reason failed closed upstream http_503; no paid model call",
+    "public_protection": "PASS for tested unauthenticated routes; MARS sensitive /deal/list and RHNS /status HTTP 401",
+    "volume_backup_and_restore": "NOT_RUN; connected Railway backup capability unavailable",
+    "private_github_actions": "FAILED_BEFORE_STEPS; runner_id 0 and no checkout/tests",
+    "monthly_spend_hard_limit": "UNVERIFIED; project resource caps are NOT bill hard cap",
+    "full_third_party_certification": "NOT_ISSUED"
+  },
+  "verified_bounded_core_runtime": true,
+  "evidence": [
+    "https://github.com/Garrettc123/RHNS-Architecture/issues/10",
+    "https://github.com/Garrettc123/rhns-agent-core/issues/23",
+    "https://github.com/Garrettc123/RHNS-Architecture/pull/11"
+  ]
 }
