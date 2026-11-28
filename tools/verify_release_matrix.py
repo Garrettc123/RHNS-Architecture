@@ -31,6 +31,11 @@ def validate() -> None:
         if inv.get(attr) is not False:
             raise SystemExit("Unsafe release state: " + attr)
     for item in components:
+        workflows = item.get("required_workflows")
+        if (not isinstance(workflows, list) or not workflows or
+                len(workflows) != len(set(map(str, workflows))) or
+                any(not isinstance(name, str) or not name for name in workflows)):
+            raise SystemExit("Missing unique required CI workflow names")
         if item["pr_url"] != "https://github.com/" + item["repo"] + "/pull/" + str(item["pr"]):
             raise SystemExit("Invalid pull request reference")
         if item.get("verified_runtime") is not False or item.get("verified_deployment") is not False:
