@@ -1,0 +1,135 @@
+{
+  "release": "rhns-mars-unified-security-gate-20261128",
+  "team": "carrolgarrett5-5537s-projects",
+  "default_branch": "main",
+  "review_branch": "fix/rhns-mars-release-gate-20261128",
+  "scope": "source_changes_only_no_deployment",
+  "approval_requirements": [
+    "production_deploy",
+    "paid_inference",
+    "customer_contact",
+    "financial_or_trading",
+    "destructive_or_infrastructure_write"
+  ],
+  "invariants": {
+    "production_deployments_enabled": false,
+    "automatic_vercel_builds_enabled": false,
+    "paid_inference_enabled": false,
+    "outbound_customer_communications_enabled": false,
+    "trading_enabled": false,
+    "cloud_resources_created": false,
+    "release_status": "candidate_pending_ci_and_external_integrations"
+  },
+  "components": [
+    {
+      "repo": "Garrettc123/RHNS-Architecture",
+      "pr": 7,
+      "pr_url": "https://github.com/Garrettc123/RHNS-Architecture/pull/7",
+      "target": "vercel-fastapi",
+      "blocker": "hosted_postgres_audit",
+      "gate": "preview_only_after_external_database_and_auth",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/rhns-agent-core",
+      "pr": 22,
+      "pr_url": "https://github.com/Garrettc123/rhns-agent-core/pull/22",
+      "target": "vercel-fastapi-gateway",
+      "blocker": "firestore_plus_independent_worker",
+      "gate": "preview_only_after_firestore_and_worker",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/garcar-rhns",
+      "pr": 4,
+      "pr_url": "https://github.com/Garrettc123/garcar-rhns/pull/4",
+      "target": "cloudflare-workflows",
+      "blocker": "durable_objects_plus_supabase",
+      "gate": "manual_cloudflare_approval_only",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/garcar-rhns-core",
+      "pr": 5,
+      "pr_url": "https://github.com/Garrettc123/garcar-rhns-core/pull/5",
+      "target": "vercel-fastapi",
+      "blocker": "authenticated_status_read_only",
+      "gate": "preview_only_after_auth",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/garcar-rhns-edge",
+      "pr": 3,
+      "pr_url": "https://github.com/Garrettc123/garcar-rhns-edge/pull/3",
+      "target": "dedicated-worker",
+      "blocker": "sqlite_plus_in_process_not_serverless",
+      "gate": "blocked_pending_durable_state",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/gitops-rhns",
+      "pr": 2,
+      "pr_url": "https://github.com/Garrettc123/gitops-rhns/pull/2",
+      "target": "argocd-gitops",
+      "blocker": "manual_cluster_reconciliation",
+      "gate": "no_vercel_deployment",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/mars-api",
+      "pr": 7,
+      "pr_url": "https://github.com/Garrettc123/mars-api/pull/7",
+      "target": "vercel-fastapi",
+      "blocker": "durable_rhns_runtime_bridge",
+      "gate": "preview_only_after_runtime_bridge",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/mars-production",
+      "pr": 9,
+      "pr_url": "https://github.com/Garrettc123/mars-production/pull/9",
+      "target": "vercel-fastapi",
+      "blocker": "explicit_model_budget_and_secret",
+      "gate": "preview_only_inference_off",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/mars-ai-debugger",
+      "pr": 1,
+      "pr_url": "https://github.com/Garrettc123/mars-ai-debugger/pull/1",
+      "target": "vercel-fastapi",
+      "blocker": "auth_and_inference_opt_in",
+      "gate": "preview_only_inference_off",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/udcb-mars-implementation",
+      "pr": 2,
+      "pr_url": "https://github.com/Garrettc123/udcb-mars-implementation/pull/2",
+      "target": "distributed-ray-worker",
+      "blocker": "real_lean_and_model_clients",
+      "gate": "no_vercel_deployment",
+      "verified_runtime": false,
+      "verified_deployment": false
+    },
+    {
+      "repo": "Garrettc123/mars-benchmark-research",
+      "pr": 1,
+      "pr_url": "https://github.com/Garrettc123/mars-benchmark-research/pull/1",
+      "target": "research-placeholder",
+      "blocker": "reproducible_evaluation",
+      "gate": "no_vercel_deployment",
+      "verified_runtime": false,
+      "verified_deployment": false
+    }
+  ]
+}
