@@ -69,7 +69,7 @@ def inspect_component(component: dict, reader: GitHubReader) -> dict:
               "review_pass": False, "runtime_pass": False,
               "deployment_pass": False, "head_sha": None,
               "reasons": [], "checks": []}
-    if not isinstance(repo, str) or not REPO.fullmatch(repo):
+    if not isinstance(repo, str) or not REPO.fullmatch(repo) or ".." in repo:
         result["reasons"].append("invalid_repo")
         return result
     if type(pr_number) is not int or pr_number < 1:
