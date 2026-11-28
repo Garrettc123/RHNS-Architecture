@@ -1,0 +1,85 @@
+{
+  "report_version": "2026-11-28-v1",
+  "scope": "RHNS MARS phased production evidence",
+  "disposition": "PARTIAL_HTTP_PRODUCTION_ONLY",
+  "claims_boundary": "Build READY and HTTP liveness do not establish configured durable runtime, model inference, trading, messaging, revenue or customer execution.",
+  "live_production": [
+    {
+      "repo": "Garrettc123/mars-production",
+      "github_pr": 9,
+      "main_sha": "75c7c110ff0a93a9661f3ad5c275ef79006d3a79",
+      "deployment_id": "dpl_E5JgSoLCWJR8FH3cTbLjxurHCyng",
+      "target": "production",
+      "deployment_status": "READY",
+      "http_health_observed_previous_release": true,
+      "service_api_secret_installed": true,
+      "paid_inference_enabled": false
+    },
+    {
+      "repo": "Garrettc123/mars-api",
+      "github_pr": 7,
+      "main_sha": "7fa899dcde3c441fbeda7f2de8425c1cbacea40e",
+      "deployment_id": "dpl_5YCdhsUh2MT21sbHgfHUkg4kegEw",
+      "target": "production",
+      "deployment_status": "READY",
+      "http_health_observed_previous_release": true,
+      "service_api_secret_installed": true,
+      "task_bridge_enabled": false
+    }
+  ],
+  "merged_governance": [
+    {
+      "github_pr": 7,
+      "main_sha": "1778ca1418f548977e8a3289327edcc7e892049d",
+      "scope": "Audit persistence and release matrix code; not deployed worker"
+    },
+    {
+      "github_pr": 8,
+      "main_sha": "afb332ccf05299545efe3b81f7a80a77ba730dfc",
+      "scope": "Restricted migration code; database schema NOT applied"
+    }
+  ],
+  "protected_staging": [
+    {
+      "repo": "Garrettc123/rhns-agent-core",
+      "github_pr": 22,
+      "source_sha": "8635a997d7c9e11bdbbf9eab5447ab40a3d8e633",
+      "vercel_deployment_id": "dpl_3SLTo73DDNoPpviSV5BxZbemTju3",
+      "target": "staging",
+      "state": "READY",
+      "observed_http_statuses": {
+        "/health": 200,
+        "/ready": 503,
+        "/agents": 503
+      },
+      "external_execution_enabled": false,
+      "db_initialized": false
+    }
+  ],
+  "railway_provisioning": {
+    "project_id": "fe0f596e-61c7-418a-a02d-e45c913b870c",
+    "project_name": "garcar-rhns-runtime-production",
+    "environment_id": "0cdaeaaf-3194-4497-a887-5f5ffa1d4234",
+    "state": "STAGED_NOT_APPLIED",
+    "services": [
+      "Postgres",
+      "rhns-audit-bootstrap",
+      "rhns-governance-api",
+      "rhns-governed-worker"
+    ],
+    "separate_volume_for_sqlite_worker": true,
+    "cost_approval_and_live_deployment_verified": false,
+    "database_schema_migrated": false,
+    "runtime_end_to_end_verified": false
+  },
+  "unresolved_gates": [
+    "Eight private GitHub repositories reported failed jobs with absent executable step reports; root cause not proven",
+    "Dedicated Railway project may incur hosting charges once staged changes are applied",
+    "RHNS worker must demonstrate guarded authenticated L0/L1 task, idempotency, persistent receipt verification and cold restart",
+    "RHNS governance PostgreSQL runtime must demonstrate least-privilege role, append-only trigger and persistence chain",
+    "MARS API task bridge must remain off until worker endpoint, TLS, identity and tenant verification are complete",
+    "No model inference, customer outreach, payments, trades, clusters or GitOps auto-sync authorized by this report"
+  ],
+  "automated_builds_paused": true,
+  "verified_full_platform_production": false
+}
