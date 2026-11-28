@@ -9,7 +9,6 @@ import json
 import time
 from typing import Any
 
-import psycopg
 
 from .ledger import AuditEntry, AuditLedger, _canonical_payload, _entry_digest
 
@@ -38,6 +37,8 @@ class PostgresAuditLedger:
                     raise RuntimeError("RHNS immutable audit trigger is not installed")
 
     def _connection(self):
+        # The optional driver must not break offline SQLite/in-memory tests.
+        import psycopg
         # One short-lived connection per transaction; never print DSN.
         return psycopg.connect(self._dsn, connect_timeout=5)
 
