@@ -126,10 +126,14 @@ def inspect_component(component: dict, reader: GitHubReader) -> dict:
             result["reasons"].append("workflow_id_missing")
             continue
         previous = latest.get(workflow_id)
-        if previous is None or (str(run.get("created_at", "")),
-                                int(run.get("run_attempt") or 0)) > (
-                                    str(previous.get("created_at", "")),
-                                    int(previous.get("run_attempt") or 0)):
+        attempt = run.get("run_attempt")
+        previous_attempt = previous.get("run_attempt") if previous else None
+        key = (str(run.get("created_at", "")),
+               attempt if type(attempt) is int else 0)
+        previous_key = (str(previous.get("created_at", "")),
+                        previous_attempt if type(previous_attempt) is int else 0
+                        ) if previous else None
+        if previous_key is None or key > previous_key:
             latest[workflow_id] = run
     for run in sorted(latest.values(), key=lambda item: str(item.get("name", ""))):
         state = run.get("status")
@@ -153,6 +157,17 @@ def inspect_component(component: dict, reader: GitHubReader) -> dict:
                     item["diagnostic"] = "job_steps_unavailable"
     if not latest:
         result["reasons"].append("no_valid_workflow_identifiers")
+    required = component.get("required_workflows")
+    if (not isinstance(required, list) or not required or
+            len(required) != len(set(map(str, required))) or
+            any(not isinstance(name, str) or not name for name in required)):
+        result["reasons"].append("required_workflows_missing_or_invalid")
+    else:
+        observed = {item.get("name") for item in result["checks"]}
+        absent = sorted(set(required) - observed)
+        if absent:
+            result["reasons"].append("required_workflows_not_observed")
+            result["missing_workflows"] = absent
     if not result["reasons"]:
         result["ci_pass"] = True
         # This is a draft; code review or release authorization is not granted.
