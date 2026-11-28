@@ -29,7 +29,12 @@
       "blocker": "hosted_postgres_audit",
       "gate": "preview_only_after_external_database_and_auth",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS CI",
+        "RHNS Policy Gate Tests",
+        "RHNS MARS unified release matrix"
+      ]
     },
     {
       "repo": "Garrettc123/rhns-agent-core",
@@ -39,7 +44,13 @@
       "blocker": "firestore_plus_independent_worker",
       "gate": "preview_only_after_firestore_and_worker",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS Firestore Cloud Run Candidate CI",
+        "RHNS Governed Runtime CI",
+        "ci",
+        "RHNS ASGI security and compatibility"
+      ]
     },
     {
       "repo": "Garrettc123/garcar-rhns",
@@ -49,7 +60,11 @@
       "blocker": "durable_objects_plus_supabase",
       "gate": "manual_cloudflare_approval_only",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS Cloudflare control-plane security",
+        "RHNS Revenue Source Build and Review"
+      ]
     },
     {
       "repo": "Garrettc123/garcar-rhns-core",
@@ -59,7 +74,10 @@
       "blocker": "authenticated_status_read_only",
       "gate": "preview_only_after_auth",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS Core Review Gate — No Production Deploy"
+      ]
     },
     {
       "repo": "Garrettc123/garcar-rhns-edge",
@@ -69,7 +87,10 @@
       "blocker": "sqlite_plus_in_process_not_serverless",
       "gate": "blocked_pending_durable_state",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS Edge Security and Contract CI"
+      ]
     },
     {
       "repo": "Garrettc123/gitops-rhns",
@@ -79,7 +100,10 @@
       "blocker": "manual_cluster_reconciliation",
       "gate": "no_vercel_deployment",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "RHNS GitOps Source Validation (No Sync)"
+      ]
     },
     {
       "repo": "Garrettc123/mars-api",
@@ -89,7 +113,11 @@
       "blocker": "durable_rhns_runtime_bridge",
       "gate": "preview_only_after_runtime_bridge",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "MARS API Validation (deployment gated)",
+        "RHNS application verification"
+      ]
     },
     {
       "repo": "Garrettc123/mars-production",
@@ -99,7 +127,11 @@
       "blocker": "explicit_model_budget_and_secret",
       "gate": "preview_only_inference_off",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "CodeQL Advanced Security",
+        "CI"
+      ]
     },
     {
       "repo": "Garrettc123/mars-ai-debugger",
@@ -109,7 +141,10 @@
       "blocker": "auth_and_inference_opt_in",
       "gate": "preview_only_inference_off",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "MARS debugger security gate"
+      ]
     },
     {
       "repo": "Garrettc123/udcb-mars-implementation",
@@ -119,7 +154,10 @@
       "blocker": "real_lean_and_model_clients",
       "gate": "no_vercel_deployment",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "UDCB source-only release gate"
+      ]
     },
     {
       "repo": "Garrettc123/mars-benchmark-research",
@@ -129,7 +167,10 @@
       "blocker": "reproducible_evaluation",
       "gate": "no_vercel_deployment",
       "verified_runtime": false,
-      "verified_deployment": false
+      "verified_deployment": false,
+      "required_workflows": [
+        "MARS benchmark placeholder release gate"
+      ]
     }
   ]
 }
