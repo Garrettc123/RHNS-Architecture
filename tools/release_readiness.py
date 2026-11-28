@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 MANIFEST = Path(__file__).resolve().parents[1] / "release" / "rhns_mars_release_matrix.json"
 REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -23,6 +23,12 @@ SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 
 class EvidenceUnavailable(Exception):
     """An upstream response cannot certify a release gate."""
+
+
+class _DenyRedirects(HTTPRedirectHandler):
+    def redirect_request(self, request, file_pointer, code, message, headers, url):
+        # Do not forward a GitHub bearer credential to another host.
+        return None
 
 
 class GitHubReader:
@@ -46,7 +52,7 @@ class GitHubReader:
             method="GET",
         )
         try:
-            with urlopen(request, timeout=12) as response:
+            with build_opener(_DenyRedirects()).open(request, timeout=12) as response:
                 payload = response.read(1024 * 1024 + 1)
             if len(payload) > 1024 * 1024:
                 raise EvidenceUnavailable("github_response_too_large")
@@ -89,6 +95,8 @@ def inspect_component(component: dict, reader: GitHubReader) -> dict:
         result["reasons"].append("unexpected_base_branch")
     if (pr.get("head") or {}).get("ref") != "fix/rhns-mars-release-gate-20261128":
         result["reasons"].append("unexpected_head_branch")
+    if ((pr.get("head") or {}).get("repo") or {}).get("full_name") != repo:
+        result["reasons"].append("unexpected_head_repository")
     head_sha = (pr.get("head") or {}).get("sha")
     if not isinstance(head_sha, str) or not SHA.fullmatch(head_sha):
         result["reasons"].append("missing_head_sha")
