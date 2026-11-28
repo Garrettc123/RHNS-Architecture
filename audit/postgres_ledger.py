@@ -6,7 +6,6 @@ are blocked with a database trigger; this is NOT externally anchored WORM storag
 from __future__ import annotations
 
 import json
-import os
 import time
 from typing import Any
 
@@ -26,40 +25,17 @@ class PostgresAuditLedger:
         if not dsn or not dsn.startswith(("postgresql://", "postgres://")):
             raise ValueError("RHNS PostgreSQL connection string required")
         self._dsn = dsn
+        # No schema mutations at import/startup. Apply audited SQL migration first.
         with self._connection() as connection:
             with connection.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS rhns_audit_entries (
-                        entry_index BIGINT PRIMARY KEY,
-                        timestamp DOUBLE PRECISION NOT NULL,
-                        module TEXT NOT NULL,
-                        event TEXT NOT NULL,
-                        payload_json TEXT NOT NULL,
-                        prev_hash TEXT NOT NULL,
-                        entry_hash TEXT UNIQUE NOT NULL
-                    )
-                """)
-                cur.execute("""
-                    CREATE OR REPLACE FUNCTION rhns_reject_audit_mutation()
-                    RETURNS trigger LANGUAGE plpgsql AS $$
-                    BEGIN
-                      RAISE EXCEPTION 'RHNS audit entries are append-only';
-                    END;
-                    $$
-                """)
-                cur.execute("""
-                    DO $$
-                    BEGIN
-                      IF NOT EXISTS (SELECT 1 FROM pg_trigger
-                                     WHERE tgrelid = 'rhns_audit_entries'::regclass
-                                       AND tgname = 'rhns_audit_no_mutation') THEN
-                        CREATE TRIGGER rhns_audit_no_mutation
-                        BEFORE UPDATE OR DELETE ON rhns_audit_entries
-                        FOR EACH ROW EXECUTE FUNCTION rhns_reject_audit_mutation();
-                      END IF;
-                    END;
-                    $$
-                """)
+                cur.execute("SELECT entry_index FROM rhns_audit_entries LIMIT 0")
+                cur.execute(
+                    "SELECT COUNT(*) FROM pg_trigger WHERE tgrelid = "
+                    "'rhns_audit_entries'::regclass AND tgname = "
+                    "'rhns_audit_no_mutation' AND NOT tgisinternal"
+                )
+                if cur.fetchone()[0] != 1:
+                    raise RuntimeError("RHNS immutable audit trigger is not installed")
 
     def _connection(self):
         # One short-lived connection per transaction; never print DSN.
