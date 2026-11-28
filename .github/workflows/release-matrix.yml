@@ -1,0 +1,18 @@
+name: RHNS MARS unified release matrix
+on:
+  pull_request:
+    paths: ['release/**', 'tools/verify_release_matrix.py', '.github/workflows/release-matrix.yml']
+  push:
+    branches: [main]
+    paths: ['release/**', 'tools/verify_release_matrix.py', '.github/workflows/release-matrix.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python tools/verify_release_matrix.py

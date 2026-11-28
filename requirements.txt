@@ -3,3 +3,6 @@ fastapi==0.111.0
 uvicorn==0.30.1
 pydantic==2.7.1
 httpx==0.24.1
+
+# Durable audit backend for stateless hosts
+psycopg[binary]>=3.2,<4

@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from audit.ledger import AuditLedger, SQLiteAuditLedger
+from audit.postgres_ledger import PostgresAuditLedger
 from symbolic.plan_verifier import verify_plan
 
 MAX_REQUEST_BYTES = 64 * 1024
@@ -36,12 +37,28 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+audit_database_url = os.getenv("RHNS_AUDIT_DATABASE_URL", "").strip()
 audit_database_path = os.getenv("RHNS_AUDIT_DB_PATH", "").strip()
 ledger = (
-    SQLiteAuditLedger(audit_database_path)
-    if audit_database_path
+    PostgresAuditLedger(audit_database_url) if audit_database_url
+    else SQLiteAuditLedger(audit_database_path) if audit_database_path
     else AuditLedger()
 )
+
+
+def _storage_ready() -> bool:
+    if isinstance(ledger, PostgresAuditLedger):
+        return True
+    # Ephemeral Vercel filesystem is not a durable audit destination.
+    return not os.getenv("VERCEL") and isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+
+
+def _persistence_required() -> bool:
+    # A public/stateless Vercel host may never override the durability gate.
+    return bool(os.getenv("VERCEL")) or os.getenv(
+        "RHNS_REQUIRE_PERSISTENT_AUDIT", "true"
+    ).lower() not in {"0", "false", "no"}
+
 
 
 @app.get("/")
@@ -54,9 +71,9 @@ def root() -> dict[str, Any]:
             "plan_verification": True,
             "deterministic_policy_gate": True,
             "hash_chained_audit": True,
-            "audit_storage": "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
+            "audit_storage": "postgres" if isinstance(ledger, PostgresAuditLedger) else "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
             "plan_execution": False,
-            "persistent_audit_storage": isinstance(ledger, SQLiteAuditLedger) and ledger.persistent,
+            "persistent_audit_storage": _storage_ready(),
             "authentication_configured": len(os.getenv("RHNS_API_TOKEN", "").encode("utf-8")) >= MIN_API_TOKEN_BYTES,
         },
     }
@@ -68,10 +85,8 @@ def health() -> dict[str, Any]:
         chain_valid = ledger.verify_chain()
     except Exception:
         chain_valid = False
-    persistent_required = os.getenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "true").lower() not in {
-        "0", "false", "no"
-    }
-    storage_ready = isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+    persistent_required = _persistence_required()
+    storage_ready = _storage_ready()
     if not chain_valid or (persistent_required and not storage_ready):
         raise HTTPException(status_code=503, detail="RHNS audit subsystem is not ready.")
     return {
@@ -91,14 +106,15 @@ def architecture() -> dict[str, Any]:
             "deterministic allowlist and side-effect policy checks",
             "structured violation reports",
             "hash-chained audit ledger",
-            "SQLite persistent audit storage" if isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
-            else "in-memory audit storage",
+            "durable PostgreSQL audit storage" if isinstance(ledger, PostgresAuditLedger)
+            else "SQLite persistent audit storage" if _storage_ready()
+            else "in-memory or ephemeral audit storage",
         ],
         "not_implemented": [
             "LLM planning or generation",
             "persistent memory or graph retrieval",
             "plan execution",
-            *([] if isinstance(ledger, SQLiteAuditLedger) and ledger.persistent else ["persistent audit storage"]),
+            *([] if _storage_ready() else ["persistent audit storage"]),
             "production rate limiting",
         ],
     }
@@ -148,10 +164,8 @@ async def _read_bounded_json(request: Request) -> Any:
 @app.post("/reason")
 async def reason(request: Request) -> dict[str, Any]:
     _authorize(request)
-    persistent_required = os.getenv("RHNS_REQUIRE_PERSISTENT_AUDIT", "true").lower() not in {
-        "0", "false", "no"
-    }
-    storage_ready = isinstance(ledger, SQLiteAuditLedger) and ledger.persistent
+    persistent_required = _persistence_required()
+    storage_ready = _storage_ready()
     if persistent_required and not storage_ready:
         raise HTTPException(
             status_code=503,
@@ -199,6 +213,6 @@ async def reason(request: Request) -> dict[str, Any]:
             "index": audit_entry.index,
             "hash": audit_entry.hash,
             "chain_valid": chain_valid,
-            "storage": "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
+            "storage": "postgres" if isinstance(ledger, PostgresAuditLedger) else "sqlite" if isinstance(ledger, SQLiteAuditLedger) else "in_memory",
         },
     }
