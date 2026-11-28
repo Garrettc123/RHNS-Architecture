@@ -1,0 +1,40 @@
+name: RHNS MARS cross-repository evidence gate (offline)
+on:
+  pull_request:
+    paths:
+      - 'release/**'
+      - 'tools/release_readiness.py'
+      - 'tests/test_release_readiness.py'
+      - '.github/workflows/release-evidence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'release/**'
+      - 'tools/release_readiness.py'
+      - 'tests/test_release_readiness.py'
+      - '.github/workflows/release-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest tests.test_release_readiness -v
+      - name: Ensure no-token live review stays blocked
+        env:
+          GITHUB_TOKEN: ''
+        shell: bash
+        run: |
+          set +e
+          python tools/release_readiness.py --output /tmp/rhns-release-readiness.json
+          result=$?
+          set -e
+          test "$result" -eq 2
+          python -c "import json; x=json.load(open('/tmp/rhns-release-readiness.json')); assert x['release_ready'] is False; assert x['counts']['ci_blocked'] == 11"
+          echo "Evidence gate stayed closed without cross-repository read access"
