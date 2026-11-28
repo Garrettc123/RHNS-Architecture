@@ -28,7 +28,7 @@ class FakeReader:
     def __init__(self, runs=None, pr=None, jobs=None):
         self.runs = [good_run()] if runs is None else runs
         self.pr = pr or {"state": "open", "draft": True,
-                         "base": {"ref": "main"}, "head": {"ref": BRANCH, "sha": HEAD}}
+                         "base": {"ref": "main"}, "head": {"ref": BRANCH, "sha": HEAD, "repo": {"full_name": "Garrettc123/mars-api"}}}
         self.jobs = [{"id": 5, "steps": None}] if jobs is None else jobs
     def get(self, path, params=None):
         if path.endswith("/pulls/7"):
@@ -65,10 +65,18 @@ class ReadinessTests(unittest.TestCase):
 
     def test_wrong_branch_blocks(self):
         pr = {"state": "open", "draft": True, "base": {"ref": "main"},
-              "head": {"ref": "other", "sha": HEAD}}
+              "head": {"ref": "other", "sha": HEAD, "repo": {"full_name": "Garrettc123/mars-api"}}}
         x = inspect_component(component(), FakeReader(pr=pr))
         self.assertFalse(x["ci_pass"])
         self.assertIn("unexpected_head_branch", x["reasons"])
+
+    def test_fork_head_does_not_pass_source_provenance(self):
+        pr = {"state": "open", "draft": True, "base": {"ref": "main"},
+              "head": {"ref": BRANCH, "sha": HEAD,
+                       "repo": {"full_name": "thirdparty/mars-api"}}}
+        x = inspect_component(component(), FakeReader(pr=pr))
+        self.assertFalse(x["ci_pass"])
+        self.assertIn("unexpected_head_repository", x["reasons"])
 
     def test_invalid_repository_prevents_api_request(self):
         item = dict(component(), repo="../evil")
