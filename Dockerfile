@@ -5,6 +5,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
 COPY main.py .
+COPY audit/ ./audit/
+COPY infra/postgres_audit_schema.sql ./infra/postgres_audit_schema.sql
+COPY scripts/migrate_rhns_audit.py ./scripts/migrate_rhns_audit.py
 COPY api/ ./api/
 COPY search/ ./search/
 COPY symbolic/ ./symbolic/
