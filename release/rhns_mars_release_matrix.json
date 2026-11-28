@@ -33,7 +33,8 @@
       "required_workflows": [
         "RHNS CI",
         "RHNS Policy Gate Tests",
-        "RHNS MARS unified release matrix"
+        "RHNS MARS unified release matrix",
+        "RHNS MARS cross-repository evidence gate (offline)"
       ]
     },
     {
